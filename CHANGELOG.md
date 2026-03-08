@@ -13,6 +13,7 @@
 * Highlight active word in book background with red glow and bold
 * Fix paragraph break flicker in book view background text
 * Improve focal guide line visibility in book view
+* Refactor all inline styles to CSS classes
 
 ### 2026-02-02: 1.0.5
 

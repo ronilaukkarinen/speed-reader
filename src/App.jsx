@@ -396,57 +396,54 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
 
   return (
     <div
-      style={styles.bvOuter}
+      className="bv-outer"
       onMouseDown={(e) => onDragStart(e.clientY)}
       onTouchStart={(e) => onDragStart(e.touches[0].clientY)}
     >
       {/* Background: continuous book text, dimmed */}
-      <div ref={bgContainerRef} style={styles.bvBg}>
-        <div ref={bgTextRef} style={styles.bvBgText}>
+      <div ref={bgContainerRef} className="bv-bg">
+        <div ref={bgTextRef} className="bv-bg-text">
           {bgPastText}
           {bgPastText ? (paragraphBreaks.has(currentIndex) ? "\n\n" : " ") : ""}
-          <span ref={markerRef} style={styles.bvBgActiveWord}>{activeWord}</span>
+          <span ref={markerRef} className="bv-bg-active-word">{activeWord}</span>
           {paragraphBreaks.has(currentIndex + 1) ? "\n\n" : " "}
           {bgFutureText}
         </div>
       </div>
 
       {/* Foreground: ORP center display */}
-      <div style={{ flex: 1 }} />
-      <div style={styles.bvCenter}>
-        <div style={styles.bvDisplayArea}>
-          <div style={styles.bvFocalGuide}>
-            <div style={styles.bvFocalLine} />
-            <div style={styles.bvFocalMarker} />
-            <div style={styles.bvFocalLine} />
+      <div className="flex-spacer" />
+      <div className="bv-center">
+        <div className="bv-display-area">
+          <div className="bv-focal-guide">
+            <div className="bv-focal-line" />
+            <div className="bv-focal-marker" />
+            <div className="bv-focal-line" />
           </div>
 
-          <div style={styles.bvWordContainer}>
+          <div className="bv-word-container">
             <div
-              style={{
-                ...styles.bvWordDisplay,
-                transform: `translateY(-50%) translateX(calc(-${orpIdx}ch - 0.5ch))`,
-              }}
-              className="mono"
+              style={{ transform: `translateY(-50%) translateX(calc(-${orpIdx}ch - 0.5ch))` }}
+              className="bv-word-display mono"
             >
-              <span style={{ ...styles.beforeORP, opacity: sideOpacity }}>
+              <span className="before-orp" style={{ opacity: sideOpacity }}>
                 {before}
               </span>
-              <span style={styles.orpChar}>{orp}</span>
-              <span style={{ ...styles.afterORP, opacity: sideOpacity }}>
+              <span className="orp-char">{orp}</span>
+              <span className="after-orp" style={{ opacity: sideOpacity }}>
                 {after}
               </span>
             </div>
           </div>
 
-          <div style={styles.bvFocalGuide}>
-            <div style={styles.bvFocalLine} />
-            <div style={styles.bvFocalMarker} />
-            <div style={styles.bvFocalLine} />
+          <div className="bv-focal-guide">
+            <div className="bv-focal-line" />
+            <div className="bv-focal-marker" />
+            <div className="bv-focal-line" />
           </div>
         </div>
       </div>
-      <div style={{ flex: 1 }} />
+      <div className="flex-spacer" />
     </div>
   );
 });
@@ -795,17 +792,13 @@ function App() {
   const afterORP = currentText.slice(orpIndex + 1);
 
   return (
-    <div style={styles.container}>
+    <div className="container">
       {/* Top controls */}
-      <div style={styles.topBar} className="top-bar">
-        <div style={styles.topLeft}>
+      <div className="top-bar">
+        <div className="top-left">
           <button
             onClick={() => setShowTextInput(!showTextInput)}
-            style={{
-              ...styles.textBtn,
-              ...(showTextInput ? styles.textBtnActive : {}),
-            }}
-            className="icon-btn"
+            className={`text-btn icon-btn${showTextInput ? " active" : ""}`}
             title="Edit text"
           >
             <FileText size={16} />
@@ -813,8 +806,7 @@ function App() {
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
-            style={styles.textBtn}
-            className="icon-btn"
+            className="text-btn icon-btn"
             title="Upload EPUB or TXT"
             disabled={isLoadingFile}
           >
@@ -826,58 +818,50 @@ function App() {
             type="file"
             accept=".epub,.txt"
             onChange={handleFileUpload}
-            style={{ display: "none" }}
+            className="hidden"
           />
           {isFullscreenSupported() && (
             <button
               onClick={toggleFullscreen}
-              style={styles.textBtn}
-              className="icon-btn"
+              className="text-btn icon-btn"
               title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             >
               {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
             </button>
           )}
         </div>
-        <div style={styles.topCenter}>
-          <div style={styles.wpmControl} className="wpm-control">
+        <div className="top-center">
+          <div className="wpm-control">
             <button
               onClick={() => adjustWpm(-25)}
-              style={styles.wpmBtn}
               className="wpm-btn"
             >
               <Minus size={16} />
             </button>
-            <div style={styles.wpmDisplay}>
-              <span style={styles.wpmValue} className="wpm-value">
+            <div className="wpm-display">
+              <span className="wpm-value">
                 {wpm}
               </span>
-              <span style={styles.wpmLabel}>WPM</span>
+              <span className="wpm-label">WPM</span>
             </div>
             <button
               onClick={() => adjustWpm(25)}
-              style={styles.wpmBtn}
               className="wpm-btn"
             >
               <Plus size={16} />
             </button>
           </div>
         </div>
-        <div style={styles.topRight}>
+        <div className="top-right">
           <button
             onClick={() => setBookView(!bookView)}
-            style={{
-              ...styles.iconBtn,
-              ...(bookView ? styles.iconBtnActive : {}),
-            }}
-            className="icon-btn"
+            className={`icon-btn${bookView ? " active" : ""}`}
             title="Book view"
           >
             <BookOpen size={18} />
           </button>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            style={styles.iconBtn}
             className="icon-btn"
             title="Settings"
           >
@@ -885,7 +869,6 @@ function App() {
           </button>
           <button
             onClick={() => setShowShortcuts(!showShortcuts)}
-            style={styles.iconBtn}
             className="icon-btn"
             title="Keyboard shortcuts"
           >
@@ -893,7 +876,6 @@ function App() {
           </button>
           <button
             onClick={() => setShowInfo(!showInfo)}
-            style={styles.iconBtn}
             className="icon-btn"
             title="How it works"
           >
@@ -904,12 +886,12 @@ function App() {
 
       {/* Text input panel - fixed position overlay */}
       {showTextInput && (
-        <div style={styles.textInputOverlay}>
-          <div style={styles.textInputPanel}>
+        <div className="text-input-overlay">
+          <div className="text-input-panel">
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              style={styles.textarea}
+              className="textarea"
               placeholder="Paste your text here..."
               rows={8}
               autoFocus
@@ -929,81 +911,75 @@ function App() {
           paragraphBreaks={paragraphBreaks}
         />
       ) : (
-        <div style={styles.mainArea} className="main-area">
-          <div style={styles.displayArea}>
-            <div style={styles.focalGuide}>
-              <div style={styles.focalLine} />
-              <div style={styles.focalMarker} />
-              <div style={styles.focalLine} />
+        <div className="main-area">
+          <div className="display-area">
+            <div className="focal-guide">
+              <div className="focal-line" />
+              <div className="focal-marker" />
+              <div className="focal-line" />
             </div>
 
-            <div style={styles.wordContainer} className="word-container">
+            <div className="word-container">
               {currentText ? (
                 <div
-                  style={{
-                    ...styles.wordDisplay,
-                    transform: `translateY(-50%) translateX(calc(-${orpIndex}ch - 0.5ch))`,
-                  }}
+                  style={{ transform: `translateY(-50%) translateX(calc(-${orpIndex}ch - 0.5ch))` }}
                   className="mono word-display"
                 >
-                  <span style={{ ...styles.beforeORP, opacity: sideOpacity }}>
+                  <span className="before-orp" style={{ opacity: sideOpacity }}>
                     {beforeORP}
                   </span>
-                  <span style={styles.orpChar}>{orpChar}</span>
-                  <span style={{ ...styles.afterORP, opacity: sideOpacity }}>
+                  <span className="orp-char">{orpChar}</span>
+                  <span className="after-orp" style={{ opacity: sideOpacity }}>
                     {afterORP}
                   </span>
                 </div>
               ) : (
                 <div
-                  style={{
-                    ...styles.wordDisplay,
-                    transform: "translateY(-50%) translateX(-50%)",
-                  }}
+                  style={{ transform: "translateY(-50%) translateX(-50%)" }}
                   className="mono word-display"
                 >
-                  <span style={styles.placeholder}>Ready</span>
+                  <span className="placeholder">Ready</span>
                 </div>
               )}
             </div>
 
-            <div style={styles.focalGuide}>
-              <div style={styles.focalLine} />
-              <div style={styles.focalMarker} />
-              <div style={styles.focalLine} />
+            <div className="focal-guide">
+              <div className="focal-line" />
+              <div className="focal-marker" />
+              <div className="focal-line" />
             </div>
           </div>
         </div>
       )}
 
       {/* Bottom controls */}
-      <div style={styles.bottomArea} className="bottom-area">
+      <div className="bottom-area">
         {/* Controls with play button in center */}
-        <div style={styles.controlsRow}>
+        <div className="controls-row">
           <button
             onClick={() => stepWord(-10)}
-            style={styles.skipBtn}
+            className="skip-btn"
             title="Back 10 words"
           >
             <ChevronLeft size={24} />
-            <ChevronLeft size={24} style={{ marginLeft: -14 }} />
+            <ChevronLeft size={24} className="chevron-overlap" />
           </button>
-          <button onClick={togglePlay} style={styles.playBtn} className="play-btn">
+          <button onClick={togglePlay} className="play-btn">
             {isPlaying ? <PauseSolid size={32} /> : <PlaySolid size={32} />}
           </button>
           <button
             onClick={() => stepWord(10)}
-            style={styles.skipBtn}
+            className="skip-btn"
             title="Forward 10 words"
           >
             <ChevronRight size={24} />
-            <ChevronRight size={24} style={{ marginLeft: -14 }} />
+            <ChevronRight size={24} className="chevron-overlap" />
           </button>
         </div>
 
         {/* Progress */}
         <div
-          style={styles.progressContainer}
+          className="progress-container"
           onClick={handleProgressClick}
           onKeyDown={(e) => {
             if (e.key === "ArrowLeft") {
@@ -1022,52 +998,50 @@ function App() {
           aria-valuenow={Math.round(progress)}
           aria-valuetext={`${Math.round(progress)}% complete, word ${currentIndex + 1} of ${words.length}`}
         >
-          <div style={{ ...styles.progressBar, width: `${progress}%` }} />
+          <div className="progress-bar" style={{ width: `${progress}%` }} />
         </div>
-        <div style={styles.progressRow}>
-          <div style={styles.progressText}>
+        <div className="progress-row">
+          <div className="progress-text">
             {currentIndex + 1} / {words.length} ({Math.round(progress)}%)
           </div>
           <button
             onClick={copyPositionUrl}
-            style={styles.linkBtn}
-            className="icon-btn"
+            className="link-btn icon-btn"
             title="Copy link to current position"
           >
             {linkCopied ? <Check size={14} /> : <Link size={14} />}
-            <span style={styles.linkBtnText}>{linkCopied ? "Copied" : "Copy link"}</span>
+            <span className="link-btn-text">{linkCopied ? "Copied" : "Copy link"}</span>
           </button>
         </div>
 
-        <div style={styles.hint} className="hint">
-          <kbd style={styles.kbd}>Space</kbd> play
-          <kbd style={styles.kbd}>←</kbd>
-          <kbd style={styles.kbd}>→</kbd> word
-          <kbd style={styles.kbd}>↑</kbd>
-          <kbd style={styles.kbd}>↓</kbd> speed
-          <kbd style={styles.kbd}>R</kbd> reset
-          <kbd style={styles.kbd}>B</kbd> book
+        <div className="hint">
+          <kbd className="kbd">Space</kbd> play
+          <kbd className="kbd">←</kbd>
+          <kbd className="kbd">→</kbd> word
+          <kbd className="kbd">↑</kbd>
+          <kbd className="kbd">↓</kbd> speed
+          <kbd className="kbd">R</kbd> reset
+          <kbd className="kbd">B</kbd> book
         </div>
 
         {/* Book metadata display */}
         {bookMetadata && (bookMetadata.title || bookMetadata.cover) && (
-          <aside style={styles.bookMetadata} aria-label="Current book" className="book-metadata">
+          <aside aria-label="Current book" className="book-metadata">
             {bookMetadata.cover && (
               <img
                 src={bookMetadata.cover}
                 alt={`Cover of ${bookMetadata.title || "current book"}`}
-                style={styles.bookCover}
                 className="book-cover"
               />
             )}
-            <div style={styles.bookInfo}>
+            <div className="book-info">
               {bookMetadata.title && (
-                <h3 style={styles.bookTitle} className="book-title">{bookMetadata.title}</h3>
+                <h3 className="book-title">{bookMetadata.title}</h3>
               )}
               {bookMetadata.author && (
-                <p style={styles.bookAuthor} className="book-author">{bookMetadata.author}</p>
+                <p className="book-author">{bookMetadata.author}</p>
               )}
-              <p style={styles.bookStats} className="book-stats">
+              <p className="book-stats">
                 {formatReadingTime((words.length - currentIndex) / wpm)} left
               </p>
             </div>
@@ -1078,66 +1052,66 @@ function App() {
       {/* Keyboard shortcuts modal */}
       {showShortcuts && (
         <div
-          style={styles.modalOverlay}
+          className="modal-overlay"
           onClick={() => setShowShortcuts(false)}
           role="presentation"
         >
           <div
-            style={styles.modal} className="modal"
+            className="modal"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="shortcuts-title"
           >
-            <div style={styles.modalHeader}>
-              <h2 id="shortcuts-title" style={styles.modalTitle}>Keyboard shortcuts</h2>
+            <div className="modal-header">
+              <h2 id="shortcuts-title" className="modal-title">Keyboard shortcuts</h2>
               <button
                 onClick={() => setShowShortcuts(false)}
-                style={styles.closeBtn}
+                className="close-btn"
               >
                 <X size={20} />
               </button>
             </div>
-            <div style={{ padding: "20px" }}>
-              <div style={styles.shortcutList}>
-                <div style={styles.shortcutRow}>
-                  <kbd style={styles.kbdLarge}>Space</kbd>
+            <div className="modal-body">
+              <div className="shortcut-list">
+                <div className="shortcut-row">
+                  <kbd className="kbd-large">Space</kbd>
                   <span>Play / Pause</span>
                 </div>
-                <div style={styles.shortcutRow}>
-                  <kbd style={styles.kbdLarge}>←</kbd>
+                <div className="shortcut-row">
+                  <kbd className="kbd-large">←</kbd>
                   <span>Previous word</span>
                 </div>
-                <div style={styles.shortcutRow}>
-                  <kbd style={styles.kbdLarge}>→</kbd>
+                <div className="shortcut-row">
+                  <kbd className="kbd-large">→</kbd>
                   <span>Next word</span>
                 </div>
-                <div style={styles.shortcutRow}>
-                  <kbd style={styles.kbdLarge}>Shift + ←</kbd>
+                <div className="shortcut-row">
+                  <kbd className="kbd-large">Shift + ←</kbd>
                   <span>Back 10 words</span>
                 </div>
-                <div style={styles.shortcutRow}>
-                  <kbd style={styles.kbdLarge}>Shift + →</kbd>
+                <div className="shortcut-row">
+                  <kbd className="kbd-large">Shift + →</kbd>
                   <span>Forward 10 words</span>
                 </div>
-                <div style={styles.shortcutRow}>
-                  <kbd style={styles.kbdLarge}>↑</kbd>
+                <div className="shortcut-row">
+                  <kbd className="kbd-large">↑</kbd>
                   <span>Increase speed</span>
                 </div>
-                <div style={styles.shortcutRow}>
-                  <kbd style={styles.kbdLarge}>↓</kbd>
+                <div className="shortcut-row">
+                  <kbd className="kbd-large">↓</kbd>
                   <span>Decrease speed</span>
                 </div>
-                <div style={styles.shortcutRow}>
-                  <kbd style={styles.kbdLarge}>R</kbd>
+                <div className="shortcut-row">
+                  <kbd className="kbd-large">R</kbd>
                   <span>Reset to beginning</span>
                 </div>
-                <div style={styles.shortcutRow}>
-                  <kbd style={styles.kbdLarge}>B</kbd>
+                <div className="shortcut-row">
+                  <kbd className="kbd-large">B</kbd>
                   <span>Toggle book view</span>
                 </div>
-                <div style={styles.shortcutRow}>
-                  <kbd style={styles.kbdLarge}>Esc</kbd>
+                <div className="shortcut-row">
+                  <kbd className="kbd-large">Esc</kbd>
                   <span>Close dialogs</span>
                 </div>
               </div>
@@ -1148,31 +1122,31 @@ function App() {
 
       {/* How it works modal */}
       {showInfo && (
-        <div style={styles.modalOverlay} onClick={() => setShowInfo(false)} role="presentation">
+        <div className="modal-overlay" onClick={() => setShowInfo(false)} role="presentation">
           <div
-            style={styles.modal} className="modal"
+            className="modal"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="info-title"
           >
-            <div style={styles.modalHeader}>
-              <h2 id="info-title" style={styles.modalTitle}>How RSVP speed reading works</h2>
+            <div className="modal-header">
+              <h2 id="info-title" className="modal-title">How RSVP speed reading works</h2>
               <button
                 onClick={() => setShowInfo(false)}
-                style={styles.closeBtn}
+                className="close-btn"
               >
                 <X size={20} />
               </button>
             </div>
-            <div style={styles.modalContent}>
-              <h3 style={styles.sectionTitle}>The science</h3>
-              <p style={styles.paragraph}>
+            <div className="modal-content">
+              <h3 className="section-title">The science</h3>
+              <p className="paragraph">
                 <a
                   href="https://en.wikipedia.org/wiki/Rapid_serial_visual_presentation"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={styles.link}
+                  className="link"
                 >
                   RSVP (Rapid Serial Visual Presentation)
                 </a>{" "}
@@ -1182,7 +1156,7 @@ function App() {
                   href="https://en.wikipedia.org/wiki/Saccade"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={styles.link}
+                  className="link"
                 >
                   saccades
                 </a>
@@ -1190,30 +1164,30 @@ function App() {
                 per second during normal reading, each taking 20-30ms.
               </p>
 
-              <h3 style={styles.sectionTitle}>
+              <h3 className="section-title">
                 Optimal Recognition Point (ORP)
               </h3>
-              <p style={styles.paragraph}>
+              <p className="paragraph">
                 Research on the{" "}
                 <a
                   href="https://en.wikipedia.org/wiki/Optimal_viewing_position"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={styles.link}
+                  className="link"
                 >
                   Optimal Viewing Position
                 </a>{" "}
                 shows that eyes naturally fixate slightly left of center when
                 recognizing words — typically 20-35% from the beginning. The{" "}
-                <span style={{ color: "#ff6b6b" }}>red letter</span> marks this
+                <span className="red-text">red letter</span> marks this
                 point, staying fixed so your eyes never move.
               </p>
 
-              <h3 style={styles.sectionTitle}>Spritz ORP positioning</h3>
-              <p style={styles.paragraph}>
+              <h3 className="section-title">Spritz ORP positioning</h3>
+              <p className="paragraph">
                 This reader uses the Spritz algorithm for ORP placement:
               </p>
-              <ul style={styles.list}>
+              <ul className="list">
                 <li>1 character: 1st letter</li>
                 <li>2-5 characters: 2nd letter</li>
                 <li>6-9 characters: 3rd letter</li>
@@ -1221,28 +1195,28 @@ function App() {
                 <li>14+ characters: 5th letter</li>
               </ul>
 
-              <h3 style={styles.sectionTitle}>Research findings</h3>
-              <p style={styles.paragraph}>
+              <h3 className="section-title">Research findings</h3>
+              <p className="paragraph">
                 Studies show RSVP can achieve 500+ WPM, though comprehension may
                 decrease above 350-400 WPM for complex texts. Best for light
                 reading, skimming, and building speed gradually.
               </p>
 
-              <h3 style={styles.sectionTitle}>Tips</h3>
-              <ul style={styles.list}>
+              <h3 className="section-title">Tips</h3>
+              <ul className="list">
                 <li>Start at 250-300 WPM and gradually increase</li>
                 <li>Focus on the red letter, let words come to you</li>
                 <li>Take breaks to avoid eye fatigue</li>
               </ul>
 
-              <h3 style={styles.sectionTitle}>Source code</h3>
-              <p style={styles.paragraph}>
+              <h3 className="section-title">Source code</h3>
+              <p className="paragraph">
                 This project is open source and available on{" "}
                 <a
                   href="https://github.com/ronilaukkarinen/speed-reader"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={styles.link}
+                  className="link"
                 >
                   GitHub
                 </a>
@@ -1255,14 +1229,14 @@ function App() {
 
       {/* iOS install banner */}
       {showIOSBanner && (
-        <div style={styles.iosBanner}>
-          <div style={styles.iosBannerContent}>
-            <Share size={16} style={{ flexShrink: 0 }} />
+        <div className="ios-banner">
+          <div className="ios-banner-content">
+            <Share size={16} className="flex-shrink-0" />
             <span>For fullscreen, tap Share then "Add to Home Screen"</span>
           </div>
           <button
             onClick={dismissIOSBanner}
-            style={styles.iosBannerClose}
+            className="ios-banner-close"
             aria-label="Dismiss"
           >
             <X size={16} />
@@ -1272,61 +1246,55 @@ function App() {
 
       {/* Settings modal */}
       {showSettings && (
-        <div style={styles.modalOverlay} onClick={() => setShowSettings(false)} role="presentation">
+        <div className="modal-overlay" onClick={() => setShowSettings(false)} role="presentation">
           <div
-            style={styles.modal} className="modal"
+            className="modal"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="settings-title"
           >
-            <div style={styles.modalHeader}>
-              <h2 id="settings-title" style={styles.modalTitle}>Settings</h2>
+            <div className="modal-header">
+              <h2 id="settings-title" className="modal-title">Settings</h2>
               <button
                 onClick={() => setShowSettings(false)}
-                style={styles.closeBtn}
+                className="close-btn"
               >
                 <X size={20} />
               </button>
             </div>
-            <div style={{ padding: "20px" }}>
-              <div style={styles.settingRow}>
-                <label style={styles.settingLabel}>Side opacity</label>
-                <div style={styles.settingControl}>
+            <div className="modal-body">
+              <div className="setting-row">
+                <label className="setting-label">Side opacity</label>
+                <div className="setting-control">
                   <input
                     type="range"
                     min="0"
                     max="100"
                     value={sideOpacity * 100}
                     onChange={(e) => setSideOpacity(e.target.value / 100)}
-                    style={styles.slider}
+                    className="slider"
                   />
-                  <span style={styles.settingValue}>
+                  <span className="setting-value">
                     {Math.round(sideOpacity * 100)}%
                   </span>
                 </div>
               </div>
-              <div style={styles.settingRow}>
-                <label style={styles.settingLabel}>
+              <div className="setting-row">
+                <label className="setting-label">
                   <span>Fetch missing metadata online</span>
-                  <span style={styles.settingHint}>Uses Open Library API</span>
+                  <span className="setting-hint">Uses Open Library API</span>
                 </label>
-                <div style={styles.settingControl}>
+                <div className="setting-control">
                   <button
                     onClick={() => setFetchMetadataOnline(!fetchMetadataOnline)}
-                    style={{
-                      ...styles.toggleBtn,
-                      backgroundColor: fetchMetadataOnline ? "#ff6b6b" : "#333",
-                    }}
+                    className="toggle-btn"
+                    style={{ backgroundColor: fetchMetadataOnline ? "#ff6b6b" : "#333" }}
                     aria-pressed={fetchMetadataOnline}
                   >
                     <span
-                      style={{
-                        ...styles.toggleKnob,
-                        transform: fetchMetadataOnline
-                          ? "translateX(16px)"
-                          : "translateX(0)",
-                      }}
+                      className="toggle-knob"
+                      style={{ transform: fetchMetadataOnline ? "translateX(16px)" : "translateX(0)" }}
                     />
                   </button>
                 </div>
@@ -1339,617 +1307,5 @@ function App() {
   );
 }
 
-const styles = {
-  container: {
-    height: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    backgroundColor: "#0a0a0a",
-    overflow: "hidden",
-  },
-
-  // Top bar
-  topBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "20px 32px",
-  },
-  topLeft: {
-    flex: 1,
-    display: "flex",
-    justifyContent: "flex-start",
-  },
-  topCenter: {
-    flex: 1,
-    display: "flex",
-    justifyContent: "center",
-  },
-  topRight: {
-    flex: 1,
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "4px",
-  },
-  iconBtn: {
-    background: "transparent",
-    border: "none",
-    borderRadius: "8px",
-    padding: "10px",
-    cursor: "pointer",
-    color: "rgb(98, 98, 98)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBtnActive: {
-    color: "#fff",
-    backgroundColor: "#1a1a1a",
-  },
-  textBtn: {
-    backgroundColor: "transparent",
-    border: "none",
-    borderRadius: "8px",
-    padding: "10px",
-    cursor: "pointer",
-    color: "rgb(98, 98, 98)",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    fontSize: "0.8rem",
-    fontWeight: "500",
-    outline: "none",
-    WebkitAppearance: "none",
-  },
-  textBtnActive: {
-    color: "#fff",
-    backgroundColor: "#1a1a1a",
-  },
-  wpmControl: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  wpmBtn: {
-    background: "transparent",
-    border: "none",
-    borderRadius: "6px",
-    padding: "8px",
-    cursor: "pointer",
-    color: "rgb(98, 98, 98)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  wpmDisplay: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    minWidth: "60px",
-  },
-  wpmValue: {
-    fontSize: "1.5rem",
-    fontWeight: "600",
-    color: "rgb(98, 98, 98)",
-  },
-  wpmLabel: {
-    fontSize: "0.6rem",
-    color: "rgb(98, 98, 98)",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-  },
-
-  // Text input panel
-  textInputOverlay: {
-    position: "fixed",
-    top: "70px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "100%",
-    maxWidth: "700px",
-    padding: "0 32px",
-    zIndex: 100,
-  },
-  textInputPanel: {
-    backgroundColor: "#0a0a0a",
-    borderRadius: "12px",
-    padding: "4px",
-    border: "1px solid #222",
-  },
-  textarea: {
-    width: "100%",
-    padding: "16px",
-    fontSize: "0.9rem",
-    fontFamily: "'Inter', sans-serif",
-    backgroundColor: "#111",
-    border: "1px solid #1a1a1a",
-    borderRadius: "8px",
-    color: "#ccc",
-    resize: "vertical",
-    lineHeight: "1.7",
-  },
-
-  // Main display area
-  mainArea: {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "0 48px",
-  },
-  displayArea: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    width: "100%",
-    maxWidth: "900px",
-  },
-  focalGuide: {
-    display: "flex",
-    alignItems: "center",
-    width: "100%",
-    justifyContent: "center",
-  },
-  focalLine: {
-    flex: 1,
-    height: "1px",
-    backgroundColor: "#1a1a1a",
-    maxWidth: "180px",
-  },
-  focalMarker: {
-    width: "1px",
-    height: "35px",
-    backgroundColor: "#1a1a1a",
-  },
-  wordContainer: {
-    width: "100%",
-    height: "160px",
-    position: "relative",
-    overflow: "visible",
-  },
-  wordDisplay: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    fontSize: "5.25rem",
-    fontWeight: "500",
-    whiteSpace: "nowrap",
-    display: "flex",
-    alignItems: "center",
-  },
-  beforeORP: {
-    color: "#ffffff",
-  },
-  orpChar: {
-    color: "#ff6b6b",
-    display: "inline-block",
-    width: "1ch",
-    textAlign: "center",
-    filter: "drop-shadow(0 0 20px rgba(220, 38, 38, 0.6))",
-  },
-  afterORP: {
-    color: "#ffffff",
-  },
-  placeholder: {
-    color: "rgb(98, 98, 98)",
-  },
-
-  // Bottom area
-  bottomArea: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: "16px 48px 40px",
-    gap: "16px",
-  },
-  controlsRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "4px",
-    marginBottom: "20px",
-  },
-  skipBtn: {
-    background: "transparent",
-    border: "none",
-    borderRadius: "8px",
-    width: "44px",
-    height: "44px",
-    cursor: "pointer",
-    color: "rgb(98, 98, 98)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  playBtn: {
-    background: "#ff6b6b",
-    border: "none",
-    borderRadius: "50%",
-    width: "72px",
-    height: "72px",
-    cursor: "pointer",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    margin: "0 12px",
-  },
-  progressContainer: {
-    width: "100%",
-    maxWidth: "600px",
-    height: "4px",
-    backgroundColor: "#1a1a1a",
-    borderRadius: "2px",
-    overflow: "hidden",
-    cursor: "pointer",
-  },
-  progressBar: {
-    height: "100%",
-    backgroundColor: "#ff6b6b",
-    transition: "width 0.05s linear",
-  },
-  progressRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  progressText: {
-    fontSize: "0.7rem",
-    color: "rgb(98, 98, 98)",
-  },
-  linkBtn: {
-    background: "transparent",
-    border: "none",
-    borderRadius: "4px",
-    padding: "4px 8px",
-    cursor: "pointer",
-    color: "rgb(98, 98, 98)",
-    display: "flex",
-    alignItems: "center",
-    gap: "4px",
-    fontSize: "0.7rem",
-  },
-  linkBtnText: {
-    fontSize: "0.65rem",
-  },
-  hint: {
-    fontSize: "0.7rem",
-    color: "rgb(98, 98, 98)",
-    display: "flex",
-    gap: "12px",
-    alignItems: "center",
-    marginTop: "8px",
-  },
-  kbd: {
-    backgroundColor: "#1a1a1a",
-    padding: "3px 6px",
-    borderRadius: "4px",
-    fontSize: "0.65rem",
-    color: "rgb(98, 98, 98)",
-  },
-
-  // Modal styles
-  modalOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.9)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-    padding: "20px",
-  },
-  modal: {
-    backgroundColor: "#111",
-    borderRadius: "12px",
-    maxWidth: "420px",
-    width: "100%",
-    maxHeight: "80vh",
-    overflow: "auto",
-    border: "1px solid #1a1a1a",
-  },
-  modalHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "20px 20px 0 20px",
-  },
-  modalTitle: {
-    fontSize: "1rem",
-    fontWeight: "500",
-    color: "#fff",
-  },
-  closeBtn: {
-    background: "transparent",
-    border: "none",
-    color: "rgb(98, 98, 98)",
-    cursor: "pointer",
-    padding: "4px",
-    display: "flex",
-  },
-  modalContent: {
-    padding: "0 20px 20px 20px",
-  },
-  sectionTitle: {
-    fontSize: "0.875rem",
-    fontWeight: "500",
-    color: "#888",
-    marginTop: "16px",
-    marginBottom: "8px",
-  },
-  paragraph: {
-    fontSize: "0.8rem",
-    color: "rgb(98, 98, 98)",
-    lineHeight: "1.6",
-    marginBottom: "8px",
-  },
-  link: {
-    color: "rgb(98, 98, 98)",
-    textDecoration: "underline",
-  },
-  list: {
-    fontSize: "0.8rem",
-    color: "rgb(98, 98, 98)",
-    lineHeight: "1.8",
-    paddingLeft: "18px",
-  },
-  settingRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "16px",
-  },
-  settingLabel: {
-    fontSize: "0.875rem",
-    color: "rgb(98, 98, 98)",
-    display: "flex",
-    flexDirection: "column",
-  },
-  settingControl: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
-  settingBtn: {
-    background: "transparent",
-    border: "1px solid #333",
-    borderRadius: "4px",
-    padding: "4px 8px",
-    cursor: "pointer",
-    color: "rgb(98, 98, 98)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  settingValue: {
-    fontSize: "0.875rem",
-    color: "#fff",
-    minWidth: "40px",
-    textAlign: "center",
-  },
-  slider: {
-    width: "120px",
-    accentColor: "#ff6b6b",
-  },
-  settingHint: {
-    display: "block",
-    fontSize: "0.7rem",
-    color: "#555",
-    marginTop: "2px",
-  },
-  toggleBtn: {
-    width: "40px",
-    height: "24px",
-    borderRadius: "12px",
-    border: "none",
-    cursor: "pointer",
-    position: "relative",
-    transition: "background-color 0.2s",
-  },
-  toggleKnob: {
-    position: "absolute",
-    top: "3px",
-    left: "3px",
-    width: "18px",
-    height: "18px",
-    borderRadius: "50%",
-    backgroundColor: "#fff",
-    transition: "transform 0.2s",
-  },
-  shortcutList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  shortcutRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "14px",
-    fontSize: "0.85rem",
-    color: "#666",
-  },
-  kbdLarge: {
-    backgroundColor: "#1a1a1a",
-    padding: "6px 10px",
-    borderRadius: "4px",
-    fontSize: "0.8rem",
-    minWidth: "50px",
-    textAlign: "center",
-    color: "#888",
-  },
-
-  // Book metadata
-  bookMetadata: {
-    display: "flex",
-    alignItems: "flex-end",
-    gap: "12px",
-    maxWidth: "280px",
-    marginTop: "16px",
-  },
-  bookCover: {
-    width: "48px",
-    height: "auto",
-    borderRadius: "4px",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.4)",
-  },
-  bookInfo: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "2px",
-    minWidth: 0,
-  },
-  bookTitle: {
-    fontSize: "0.8rem",
-    fontWeight: "500",
-    color: "#999",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    margin: 0,
-    marginBottom: "2px",
-  },
-  bookAuthor: {
-    fontSize: "0.75rem",
-    color: "#666",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    margin: 0,
-  },
-  bookStats: {
-    fontSize: "0.7rem",
-    color: "#555",
-    margin: 0,
-    marginTop: "2px",
-  },
-
-  // Book view
-  bvOuter: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-    minHeight: 0,
-    cursor: "grab",
-    userSelect: "none",
-    position: "relative",
-  },
-  bvBg: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: "hidden",
-    display: "flex",
-    justifyContent: "center",
-    pointerEvents: "none",
-    maskImage: "linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%)",
-    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%)",
-  },
-  bvBgText: {
-    fontSize: "1rem",
-    lineHeight: "2",
-    textAlign: "justify",
-    hyphens: "auto",
-    whiteSpace: "pre-wrap",
-    fontFamily: "'Inter', sans-serif",
-    color: "#555",
-    padding: "0 32px",
-    maxWidth: "600px",
-    width: "100%",
-  },
-  bvBgActiveWord: {
-    color: "#ff6b6b",
-    fontWeight: "700",
-    filter: "drop-shadow(0 0 12px rgba(220, 38, 38, 0.5))",
-  },
-  bvCenter: {
-    flexShrink: 0,
-    display: "flex",
-    justifyContent: "center",
-    position: "relative",
-    zIndex: 1,
-  },
-  bvDisplayArea: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    width: "100%",
-    maxWidth: "600px",
-    backgroundColor: "rgba(10, 10, 10, 0.55)",
-    borderRadius: "8px",
-    padding: "0 16px",
-  },
-  bvFocalGuide: {
-    display: "flex",
-    alignItems: "center",
-    width: "100%",
-    justifyContent: "center",
-  },
-  bvFocalLine: {
-    flex: 1,
-    height: "1px",
-    backgroundColor: "rgb(45, 45, 45)",
-    maxWidth: "120px",
-  },
-  bvFocalMarker: {
-    width: "1px",
-    height: "24px",
-    backgroundColor: "rgb(45, 45, 45)",
-  },
-  bvWordContainer: {
-    width: "100%",
-    height: "80px",
-    position: "relative",
-    overflow: "visible",
-  },
-  bvWordDisplay: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    fontSize: "2.5rem",
-    fontWeight: "500",
-    whiteSpace: "nowrap",
-    display: "flex",
-    alignItems: "center",
-  },
-
-  // iOS install banner
-  iosBanner: {
-    position: "fixed",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "#1a1a1a",
-    borderTop: "1px solid #333",
-    padding: "12px 16px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "12px",
-    zIndex: 1000,
-  },
-  iosBannerContent: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    color: "#999",
-    fontSize: "0.8rem",
-  },
-  iosBannerClose: {
-    background: "transparent",
-    border: "none",
-    color: "#666",
-    cursor: "pointer",
-    padding: "4px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-};
 
 export default App;

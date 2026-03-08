@@ -1,4 +1,4 @@
-### Unreleased
+### 2026-03-08: 1.1.0
 
 * Add book view mode with text flowing around a fixed center word
 * Remove words per display setting, default to single word

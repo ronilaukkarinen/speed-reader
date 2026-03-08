@@ -415,23 +415,32 @@ function App() {
       .filter((w) => w.length > 0).length;
     const clamp = (v) => Math.min(Math.max(0, v), Math.max(0, wordCount - 1));
 
-    // Restore from localStorage first (most reliable)
-    const savedIdx = savedSettings?.currentIndex;
-    const posIdx = getPositionForText(t, savedSettings?.positions || {});
-    const storedPos = savedIdx != null ? savedIdx : posIdx;
-
-    // Check URL hash - only use if explicitly different from stored position
-    // (indicates a shared link, not just a refresh)
+    // Check URL hash for shared links
     const hash = window.location.hash;
     if (hash) {
       const params = new URLSearchParams(hash.slice(1));
       const urlPos = parseInt(params.get("pos"), 10);
-      if (!isNaN(urlPos) && urlPos >= 0 && urlPos !== storedPos) {
+      if (!isNaN(urlPos) && urlPos >= 0) {
         return clamp(urlPos);
       }
     }
 
-    return clamp(storedPos);
+    // Read from dedicated lightweight key (survives even when full save fails)
+    try {
+      const stored = localStorage.getItem("rsvp-current-index");
+      if (stored != null) {
+        const parsed = parseInt(stored, 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+          return clamp(parsed);
+        }
+      }
+    } catch {}
+
+    // Fallback to settings bundle
+    const savedIdx = savedSettings?.currentIndex;
+    if (savedIdx != null) return clamp(savedIdx);
+
+    return clamp(getPositionForText(t, savedSettings?.positions || {}));
   });
   const [isPlaying, setIsPlaying] = useState(false);
   const [wpm, setWpm] = useState(() => savedSettings?.wpm || 300);
@@ -527,6 +536,13 @@ function App() {
       setIsPlaying(false);
     }
   }, [text]);
+
+  // Save position separately (lightweight, always succeeds)
+  useEffect(() => {
+    try {
+      localStorage.setItem("rsvp-current-index", String(currentIndex));
+    } catch {}
+  }, [currentIndex]);
 
   // Save settings including position for current text
   useEffect(() => {

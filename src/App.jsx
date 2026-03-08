@@ -313,8 +313,12 @@ function joinWordsWithBreaks(words, startIdx, endIdx, breaks) {
   return parts.join("");
 }
 
-const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setCurrentIndex, setIsPlaying, paragraphBreaks }) {
+const BookView = memo(function BookView({ words, currentIndex, setCurrentIndex, setIsPlaying, paragraphBreaks }) {
+  const containerRef = useRef(null);
+  const activeRef = useRef(null);
+  const contentRef = useRef(null);
   const dragRef = useRef({ active: false, startY: 0, startIndex: 0 });
+  const [offset, setOffset] = useState(0);
 
   const pastText = useMemo(() => {
     const start = Math.max(0, currentIndex - 200);
@@ -327,10 +331,19 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
   }, [words, currentIndex, paragraphBreaks]);
 
   const activeWord = words[currentIndex] || "";
-  const orpIdx = getORPIndex(activeWord.length);
-  const before = activeWord.slice(0, orpIdx);
-  const orp = activeWord[orpIdx] || "";
-  const after = activeWord.slice(orpIdx + 1);
+  // Add paragraph break before active word if needed
+  const activeBreak = paragraphBreaks.has(currentIndex) && currentIndex > 0;
+
+  // Measure active word position and shift content to center it
+  useEffect(() => {
+    if (activeRef.current && containerRef.current) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const wordRect = activeRef.current.getBoundingClientRect();
+      const wordCenter = wordRect.top + wordRect.height / 2;
+      const containerCenter = containerRect.top + containerRect.height / 2;
+      setOffset((prev) => prev - (wordCenter - containerCenter));
+    }
+  }, [currentIndex]);
 
   const onDragStart = useCallback((clientY) => {
     setIsPlaying(false);
@@ -340,7 +353,6 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
   const onDragMove = useCallback((clientY) => {
     if (!dragRef.current.active) return;
     const dy = dragRef.current.startY - clientY;
-    // Every 20px of drag = 1 word
     const wordDelta = Math.round(dy / 20);
     const newIndex = Math.max(0, Math.min(words.length - 1, dragRef.current.startIndex + wordDelta));
     setCurrentIndex(newIndex);
@@ -370,57 +382,21 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
 
   return (
     <div
+      ref={containerRef}
       style={styles.bvOuter}
       onMouseDown={(e) => onDragStart(e.clientY)}
       onTouchStart={(e) => onDragStart(e.touches[0].clientY)}
     >
-      {/* Past text above */}
-      <div style={styles.bvTopHalf}>
-        <div style={styles.bvTopText}>
-          {pastText}
-        </div>
-      </div>
-
-      {/* Active word - same style as normal mode, scaled down */}
-      <div style={styles.bvCenter}>
-        <div style={styles.bvDisplayArea}>
-          <div style={styles.bvFocalGuide}>
-            <div style={styles.bvFocalLine} />
-            <div style={styles.bvFocalMarker} />
-            <div style={styles.bvFocalLine} />
-          </div>
-
-          <div style={styles.bvWordContainer}>
-            <div
-              style={{
-                ...styles.bvWordDisplay,
-                transform: `translateY(-50%) translateX(calc(-${orpIdx}ch - 0.5ch))`,
-              }}
-              className="mono"
-            >
-              <span style={{ ...styles.beforeORP, opacity: sideOpacity }}>
-                {before}
-              </span>
-              <span style={styles.orpChar}>{orp}</span>
-              <span style={{ ...styles.afterORP, opacity: sideOpacity }}>
-                {after}
-              </span>
-            </div>
-          </div>
-
-          <div style={styles.bvFocalGuide}>
-            <div style={styles.bvFocalLine} />
-            <div style={styles.bvFocalMarker} />
-            <div style={styles.bvFocalLine} />
-          </div>
-        </div>
-      </div>
-
-      {/* Future text below */}
-      <div style={styles.bvBottomHalf}>
-        <div style={styles.bvBottomText}>
-          {futureText}
-        </div>
+      <div
+        ref={contentRef}
+        style={{
+          ...styles.bvContent,
+          transform: `translateY(${offset}px)`,
+        }}
+      >
+        <span style={styles.bvDimText}>{pastText}{activeBreak ? "\n\n" : " "}</span>
+        <span ref={activeRef} style={styles.bvActiveWord}>{activeWord}</span>
+        <span style={styles.bvDimText}> {futureText}</span>
       </div>
     </div>
   );
@@ -891,7 +867,6 @@ function App() {
         <BookView
           words={words}
           currentIndex={currentIndex}
-          sideOpacity={sideOpacity}
           setCurrentIndex={setCurrentIndex}
           setIsPlaying={setIsPlaying}
           paragraphBreaks={paragraphBreaks}
@@ -1797,98 +1772,34 @@ const styles = {
   // Book view
   bvOuter: {
     flex: 1,
-    display: "flex",
-    flexDirection: "column",
     overflow: "hidden",
     minHeight: 0,
     cursor: "grab",
     userSelect: "none",
-  },
-  bvTopHalf: {
-    flex: 1,
-    overflow: "hidden",
     display: "flex",
-    flexDirection: "column",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    maskImage: "linear-gradient(to bottom, transparent 0%, #000 50%)",
-    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 50%)",
+    justifyContent: "center",
+    maskImage: "linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%)",
+    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%)",
   },
-  bvTopText: {
+  bvContent: {
     fontSize: "1rem",
     lineHeight: "2",
     textAlign: "justify",
     hyphens: "auto",
     whiteSpace: "pre-wrap",
     fontFamily: "'Inter', sans-serif",
-    color: "#444",
     padding: "0 32px",
     maxWidth: "600px",
-  },
-  bvCenter: {
-    flexShrink: 0,
-    display: "flex",
-    justifyContent: "center",
-  },
-  bvDisplayArea: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
     width: "100%",
-    maxWidth: "600px",
+    willChange: "transform",
   },
-  bvFocalGuide: {
-    display: "flex",
-    alignItems: "center",
-    width: "100%",
-    justifyContent: "center",
+  bvDimText: {
+    color: "#333",
   },
-  bvFocalLine: {
-    flex: 1,
-    height: "1px",
-    backgroundColor: "#1a1a1a",
-    maxWidth: "120px",
-  },
-  bvFocalMarker: {
-    width: "1px",
-    height: "24px",
-    backgroundColor: "#1a1a1a",
-  },
-  bvWordContainer: {
-    width: "100%",
-    height: "80px",
-    position: "relative",
-    overflow: "visible",
-  },
-  bvWordDisplay: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    fontSize: "2.5rem",
-    fontWeight: "500",
-    whiteSpace: "nowrap",
-    display: "flex",
-    alignItems: "center",
-  },
-  bvBottomHalf: {
-    flex: 1,
-    overflow: "hidden",
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "center",
-    maskImage: "linear-gradient(to top, transparent 0%, #000 50%)",
-    WebkitMaskImage: "linear-gradient(to top, transparent 0%, #000 50%)",
-  },
-  bvBottomText: {
-    fontSize: "1rem",
-    lineHeight: "2",
-    textAlign: "justify",
-    hyphens: "auto",
-    whiteSpace: "pre-wrap",
-    fontFamily: "'Inter', sans-serif",
-    color: "#444",
-    padding: "0 32px",
-    maxWidth: "600px",
+  bvActiveWord: {
+    color: "#ff6b6b",
+    fontWeight: "600",
+    textShadow: "0 0 20px rgba(220, 38, 38, 0.4)",
   },
 
   // iOS install banner

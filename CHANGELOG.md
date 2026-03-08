@@ -9,6 +9,8 @@
 * Use justified text with automatic hyphens in book view
 * Preserve paragraph breaks from epub files in book view
 * Fix R keyboard shortcut resetting position on browser refresh
+* Add dimmed book text background behind centered word in book view
+* Highlight active word in book background with red glow and bold
 
 ### 2026-02-02: 1.0.5
 

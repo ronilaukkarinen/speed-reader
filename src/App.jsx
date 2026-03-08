@@ -315,22 +315,49 @@ function joinWordsWithBreaks(words, startIdx, endIdx, breaks) {
 
 const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setCurrentIndex, setIsPlaying, paragraphBreaks }) {
   const dragRef = useRef({ active: false, startY: 0, startIndex: 0 });
+  const bgContainerRef = useRef(null);
+  const bgTextRef = useRef(null);
+  const markerRef = useRef(null);
+  const bgWindowRef = useRef({ start: 0, end: 0 });
 
-  const pastText = useMemo(() => {
-    const start = Math.max(0, currentIndex - 200);
-    return joinWordsWithBreaks(words, start, currentIndex, paragraphBreaks);
-  }, [words, currentIndex, paragraphBreaks]);
+  // Chunked background window — only shift when near edges to avoid flicker
+  const bgHalf = 500;
+  const bgBuffer = 100;
+  const prev = bgWindowRef.current;
+  let bgStart = prev.start;
+  let bgEnd = prev.end;
+  if (currentIndex - bgStart < bgBuffer || bgEnd - currentIndex < bgBuffer || prev.start === prev.end) {
+    bgStart = Math.max(0, currentIndex - bgHalf);
+    bgEnd = Math.min(words.length, currentIndex + bgHalf);
+    bgWindowRef.current = { start: bgStart, end: bgEnd };
+  }
 
-  const futureText = useMemo(() => {
-    const end = Math.min(words.length, currentIndex + 200);
-    return joinWordsWithBreaks(words, currentIndex + 1, end, paragraphBreaks);
-  }, [words, currentIndex, paragraphBreaks]);
+  const bgPastText = useMemo(() =>
+    joinWordsWithBreaks(words, bgStart, currentIndex, paragraphBreaks),
+    [words, bgStart, currentIndex, paragraphBreaks]
+  );
+
+  const bgFutureText = useMemo(() =>
+    joinWordsWithBreaks(words, currentIndex + 1, bgEnd, paragraphBreaks),
+    [words, currentIndex, bgEnd, paragraphBreaks]
+  );
 
   const activeWord = words[currentIndex] || "";
   const orpIdx = getORPIndex(activeWord.length);
   const before = activeWord.slice(0, orpIdx);
   const orp = activeWord[orpIdx] || "";
   const after = activeWord.slice(orpIdx + 1);
+
+  // Scroll background to center the active word marker
+  useEffect(() => {
+    if (markerRef.current && bgTextRef.current && bgContainerRef.current) {
+      const containerH = bgContainerRef.current.clientHeight;
+      const markerTop = markerRef.current.offsetTop - bgTextRef.current.offsetTop;
+      const markerH = markerRef.current.offsetHeight;
+      const offset = containerH / 2 - markerTop - markerH / 2;
+      bgTextRef.current.style.transform = `translateY(${offset}px)`;
+    }
+  }, [currentIndex]);
 
   const onDragStart = useCallback((clientY) => {
     setIsPlaying(false);
@@ -340,7 +367,6 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
   const onDragMove = useCallback((clientY) => {
     if (!dragRef.current.active) return;
     const dy = dragRef.current.startY - clientY;
-    // Every 20px of drag = 1 word
     const wordDelta = Math.round(dy / 20);
     const newIndex = Math.max(0, Math.min(words.length - 1, dragRef.current.startIndex + wordDelta));
     setCurrentIndex(newIndex);
@@ -374,14 +400,17 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
       onMouseDown={(e) => onDragStart(e.clientY)}
       onTouchStart={(e) => onDragStart(e.touches[0].clientY)}
     >
-      {/* Past text above */}
-      <div style={styles.bvTopHalf}>
-        <div style={styles.bvTopText}>
-          {pastText}
+      {/* Background: continuous book text, dimmed */}
+      <div ref={bgContainerRef} style={styles.bvBg}>
+        <div ref={bgTextRef} style={styles.bvBgText}>
+          {bgPastText}
+          {bgPastText && " "}<span ref={markerRef} style={styles.bvBgActiveWord}>{activeWord}</span>{" "}
+          {bgFutureText}
         </div>
       </div>
 
-      {/* Active word - same style as normal mode, scaled down */}
+      {/* Foreground: ORP center display */}
+      <div style={{ flex: 1 }} />
       <div style={styles.bvCenter}>
         <div style={styles.bvDisplayArea}>
           <div style={styles.bvFocalGuide}>
@@ -415,13 +444,7 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
           </div>
         </div>
       </div>
-
-      {/* Future text below */}
-      <div style={styles.bvBottomHalf}>
-        <div style={styles.bvBottomText}>
-          {futureText}
-        </div>
-      </div>
+      <div style={{ flex: 1 }} />
     </div>
   );
 });
@@ -1810,32 +1833,44 @@ const styles = {
     minHeight: 0,
     cursor: "grab",
     userSelect: "none",
+    position: "relative",
   },
-  bvTopHalf: {
-    flex: 1,
+  bvBg: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     overflow: "hidden",
     display: "flex",
-    flexDirection: "column",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    maskImage: "linear-gradient(to bottom, transparent 0%, #000 50%)",
-    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 50%)",
+    justifyContent: "center",
+    pointerEvents: "none",
+    maskImage: "linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%)",
+    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 20%, #000 80%, transparent 100%)",
   },
-  bvTopText: {
+  bvBgText: {
     fontSize: "1rem",
     lineHeight: "2",
     textAlign: "justify",
     hyphens: "auto",
     whiteSpace: "pre-wrap",
     fontFamily: "'Inter', sans-serif",
-    color: "#444",
+    color: "#555",
     padding: "0 32px",
     maxWidth: "600px",
+    width: "100%",
+  },
+  bvBgActiveWord: {
+    color: "#ff6b6b",
+    fontWeight: "700",
+    filter: "drop-shadow(0 0 12px rgba(220, 38, 38, 0.5))",
   },
   bvCenter: {
     flexShrink: 0,
     display: "flex",
     justifyContent: "center",
+    position: "relative",
+    zIndex: 1,
   },
   bvDisplayArea: {
     display: "flex",
@@ -1843,6 +1878,9 @@ const styles = {
     alignItems: "center",
     width: "100%",
     maxWidth: "600px",
+    backgroundColor: "rgba(10, 10, 10, 0.55)",
+    borderRadius: "8px",
+    padding: "0 16px",
   },
   bvFocalGuide: {
     display: "flex",
@@ -1876,26 +1914,6 @@ const styles = {
     whiteSpace: "nowrap",
     display: "flex",
     alignItems: "center",
-  },
-  bvBottomHalf: {
-    flex: 1,
-    overflow: "hidden",
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "center",
-    maskImage: "linear-gradient(to top, transparent 0%, #000 50%)",
-    WebkitMaskImage: "linear-gradient(to top, transparent 0%, #000 50%)",
-  },
-  bvBottomText: {
-    fontSize: "1rem",
-    lineHeight: "2",
-    textAlign: "justify",
-    hyphens: "auto",
-    whiteSpace: "pre-wrap",
-    fontFamily: "'Inter', sans-serif",
-    color: "#444",
-    padding: "0 32px",
-    maxWidth: "600px",
   },
 
   // iOS install banner

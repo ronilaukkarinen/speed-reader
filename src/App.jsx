@@ -404,7 +404,9 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
       <div ref={bgContainerRef} style={styles.bvBg}>
         <div ref={bgTextRef} style={styles.bvBgText}>
           {bgPastText}
-          {bgPastText && " "}<span ref={markerRef} style={styles.bvBgActiveWord}>{activeWord}</span>{" "}
+          {bgPastText ? (paragraphBreaks.has(currentIndex) ? "\n\n" : " ") : ""}
+          <span ref={markerRef} style={styles.bvBgActiveWord}>{activeWord}</span>
+          {paragraphBreaks.has(currentIndex + 1) ? "\n\n" : " "}
           {bgFutureText}
         </div>
       </div>
@@ -1891,13 +1893,13 @@ const styles = {
   bvFocalLine: {
     flex: 1,
     height: "1px",
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "rgb(45, 45, 45)",
     maxWidth: "120px",
   },
   bvFocalMarker: {
     width: "1px",
     height: "24px",
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "rgb(45, 45, 45)",
   },
   bvWordContainer: {
     width: "100%",

@@ -11,6 +11,8 @@
 * Fix R keyboard shortcut resetting position on browser refresh
 * Add dimmed book text background behind centered word in book view
 * Highlight active word in book background with red glow and bold
+* Fix paragraph break flicker in book view background text
+* Improve focal guide line visibility in book view
 
 ### 2026-02-02: 1.0.5
 

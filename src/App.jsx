@@ -464,7 +464,7 @@ function App() {
     const savedIdx = savedSettings?.currentIndex;
     if (savedIdx != null) return clamp(savedIdx);
 
-    return clamp(getPositionForText(t, savedSettings?.positions || {}));
+    return clamp(getPositionForText(savedSettings?.text || DEFAULT_TEXT, savedSettings?.positions || {}));
   });
   const [isPlaying, setIsPlaying] = useState(false);
   const [wpm, setWpm] = useState(() => savedSettings?.wpm || 300);

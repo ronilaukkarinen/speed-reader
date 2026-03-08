@@ -48,6 +48,15 @@ button:active {
   color: #ccc !important;
 }
 
+/* Book view - hide scrollbar since it scrolls programmatically */
+.book-view-container {
+  scrollbar-width: none;
+}
+
+.book-view-container::-webkit-scrollbar {
+  display: none;
+}
+
 /* Desktop: fixed book metadata */
 @media (min-width: 866px) {
   .book-metadata {

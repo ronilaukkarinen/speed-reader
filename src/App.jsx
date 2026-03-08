@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
 import {
   Minus,
   Plus,
@@ -15,6 +15,7 @@ import {
   Maximize,
   Minimize,
   Share,
+  BookOpen,
 } from "lucide-react";
 import JSZip from "jszip";
 
@@ -280,6 +281,77 @@ async function fetchMetadataFromOpenLibrary(title, author) {
   }
 }
 
+const BookView = memo(function BookView({ words, currentIndex, sideOpacity }) {
+  const pastText = useMemo(() => {
+    const start = Math.max(0, currentIndex - 200);
+    return words.slice(start, currentIndex).join(" ");
+  }, [words, currentIndex]);
+
+  const futureText = useMemo(() => {
+    const end = Math.min(words.length, currentIndex + 200);
+    return words.slice(currentIndex + 1, end).join(" ");
+  }, [words, currentIndex]);
+
+  const activeWord = words[currentIndex] || "";
+  const orpIdx = getORPIndex(activeWord.length);
+  const before = activeWord.slice(0, orpIdx);
+  const orp = activeWord[orpIdx] || "";
+  const after = activeWord.slice(orpIdx + 1);
+
+  return (
+    <div style={styles.bvOuter}>
+      {/* Past text above */}
+      <div style={styles.bvTopHalf}>
+        <div style={styles.bvTopText}>
+          {pastText}
+        </div>
+      </div>
+
+      {/* Active word - same style as normal mode, scaled down */}
+      <div style={styles.bvCenter}>
+        <div style={styles.bvDisplayArea}>
+          <div style={styles.bvFocalGuide}>
+            <div style={styles.bvFocalLine} />
+            <div style={styles.bvFocalMarker} />
+            <div style={styles.bvFocalLine} />
+          </div>
+
+          <div style={styles.bvWordContainer}>
+            <div
+              style={{
+                ...styles.bvWordDisplay,
+                transform: `translateY(-50%) translateX(calc(-${orpIdx}ch - 0.5ch))`,
+              }}
+              className="mono"
+            >
+              <span style={{ ...styles.beforeORP, opacity: sideOpacity }}>
+                {before}
+              </span>
+              <span style={styles.orpChar}>{orp}</span>
+              <span style={{ ...styles.afterORP, opacity: sideOpacity }}>
+                {after}
+              </span>
+            </div>
+          </div>
+
+          <div style={styles.bvFocalGuide}>
+            <div style={styles.bvFocalLine} />
+            <div style={styles.bvFocalMarker} />
+            <div style={styles.bvFocalLine} />
+          </div>
+        </div>
+      </div>
+
+      {/* Future text below */}
+      <div style={styles.bvBottomHalf}>
+        <div style={styles.bvBottomText}>
+          {futureText}
+        </div>
+      </div>
+    </div>
+  );
+});
+
 function App() {
   // Load settings only once on mount
   const [savedSettings] = useState(() => loadSettings());
@@ -300,8 +372,6 @@ function App() {
       const params = new URLSearchParams(hash.slice(1));
       const urlPos = parseInt(params.get("pos"), 10);
       if (!isNaN(urlPos) && urlPos >= 0) {
-        // Clear hash after reading
-        window.history.replaceState(null, "", window.location.pathname);
         const t = savedSettings?.text || DEFAULT_TEXT;
         const wordCount = t
           .trim()
@@ -311,7 +381,8 @@ function App() {
       }
     }
     const t = savedSettings?.text || DEFAULT_TEXT;
-    const pos = getPositionForText(t, savedSettings?.positions || {});
+    // Try direct currentIndex first, then position hash
+    const pos = savedSettings?.currentIndex ?? getPositionForText(t, savedSettings?.positions || {});
     const wordCount = t
       .trim()
       .split(/\s+/)
@@ -331,8 +402,8 @@ function App() {
   const [sideOpacity, setSideOpacity] = useState(
     () => savedSettings?.sideOpacity ?? 0.5,
   );
-  const [wordAmount, setWordAmount] = useState(
-    () => savedSettings?.wordAmount ?? 1,
+  const [bookView, setBookView] = useState(
+    () => savedSettings?.bookView ?? false,
   );
   const [fetchMetadataOnline, setFetchMetadataOnline] = useState(
     () => savedSettings?.fetchMetadataOnline ?? false,
@@ -423,13 +494,21 @@ function App() {
     saveSettings({
       wpm,
       text,
+      currentIndex,
       positions: positionsRef.current,
       sideOpacity,
-      wordAmount,
+      bookView,
       bookMetadata,
       fetchMetadataOnline,
     });
-  }, [wpm, text, currentIndex, sideOpacity, wordAmount, bookMetadata, fetchMetadataOnline]);
+  }, [wpm, text, currentIndex, sideOpacity, bookView, bookMetadata, fetchMetadataOnline]);
+
+  // Update URL hash with current position in real time
+  useEffect(() => {
+    if (words.length > 0) {
+      window.history.replaceState(null, "", `${window.location.pathname}#pos=${currentIndex}`);
+    }
+  }, [currentIndex, words.length]);
 
   const getBaseDelay = useCallback(() => {
     return (60 / wpm) * 1000;
@@ -442,11 +521,11 @@ function App() {
 
       timeoutRef.current = setTimeout(() => {
         setCurrentIndex((prev) => {
-          if (prev + wordAmount >= words.length) {
+          if (prev + 1 >= words.length) {
             setIsPlaying(false);
             return prev;
           }
-          return prev + wordAmount;
+          return prev + 1;
         });
       }, delay);
     }
@@ -456,7 +535,7 @@ function App() {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isPlaying, currentIndex, words, getBaseDelay, wordAmount]);
+  }, [isPlaying, currentIndex, words, getBaseDelay]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -497,6 +576,11 @@ function App() {
           e.preventDefault();
           reset();
           break;
+        case "b":
+        case "B":
+          e.preventDefault();
+          setBookView((prev) => !prev);
+          break;
         case "Escape":
           setShowInfo(false);
           setShowShortcuts(false);
@@ -511,10 +595,9 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isPlaying, words.length]);
 
-  const getCurrentWords = () => {
+  const getCurrentWord = () => {
     if (words.length === 0) return "";
-    const endIndex = Math.min(currentIndex + wordAmount, words.length);
-    return words.slice(currentIndex, endIndex).join(" ");
+    return words[currentIndex] || "";
   };
 
   const togglePlay = () => {
@@ -590,10 +673,8 @@ function App() {
 
   const progress =
     words.length > 0 ? ((currentIndex + 1) / words.length) * 100 : 0;
-  const currentText = getCurrentWords();
-  // For ORP, use the first word when displaying multiple words
-  const firstWord = words[currentIndex] || "";
-  const orpIndex = getORPIndex(firstWord.length);
+  const currentText = getCurrentWord();
+  const orpIndex = getORPIndex(currentText.length);
 
   const beforeORP = currentText.slice(0, orpIndex);
   const orpChar = currentText[orpIndex] || "";
@@ -670,6 +751,17 @@ function App() {
         </div>
         <div style={styles.topRight}>
           <button
+            onClick={() => setBookView(!bookView)}
+            style={{
+              ...styles.iconBtn,
+              ...(bookView ? styles.iconBtnActive : {}),
+            }}
+            className="icon-btn"
+            title="Book view"
+          >
+            <BookOpen size={18} />
+          </button>
+          <button
             onClick={() => setShowSettings(!showSettings)}
             style={styles.iconBtn}
             className="icon-btn"
@@ -713,51 +805,59 @@ function App() {
       )}
 
       {/* Main display area */}
-      <div style={styles.mainArea} className="main-area">
-        <div style={styles.displayArea}>
-          <div style={styles.focalGuide}>
-            <div style={styles.focalLine} />
-            <div style={styles.focalMarker} />
-            <div style={styles.focalLine} />
-          </div>
+      {bookView ? (
+        <BookView
+          words={words}
+          currentIndex={currentIndex}
+          sideOpacity={sideOpacity}
+        />
+      ) : (
+        <div style={styles.mainArea} className="main-area">
+          <div style={styles.displayArea}>
+            <div style={styles.focalGuide}>
+              <div style={styles.focalLine} />
+              <div style={styles.focalMarker} />
+              <div style={styles.focalLine} />
+            </div>
 
-          <div style={styles.wordContainer} className="word-container">
-            {currentText ? (
-              <div
-                style={{
-                  ...styles.wordDisplay,
-                  transform: `translateY(-50%) translateX(calc(-${orpIndex}ch - 0.5ch))`,
-                }}
-                className="mono word-display"
-              >
-                <span style={{ ...styles.beforeORP, opacity: sideOpacity }}>
-                  {beforeORP}
-                </span>
-                <span style={styles.orpChar}>{orpChar}</span>
-                <span style={{ ...styles.afterORP, opacity: sideOpacity }}>
-                  {afterORP}
-                </span>
-              </div>
-            ) : (
-              <div
-                style={{
-                  ...styles.wordDisplay,
-                  transform: "translateY(-50%) translateX(-50%)",
-                }}
-                className="mono word-display"
-              >
-                <span style={styles.placeholder}>Ready</span>
-              </div>
-            )}
-          </div>
+            <div style={styles.wordContainer} className="word-container">
+              {currentText ? (
+                <div
+                  style={{
+                    ...styles.wordDisplay,
+                    transform: `translateY(-50%) translateX(calc(-${orpIndex}ch - 0.5ch))`,
+                  }}
+                  className="mono word-display"
+                >
+                  <span style={{ ...styles.beforeORP, opacity: sideOpacity }}>
+                    {beforeORP}
+                  </span>
+                  <span style={styles.orpChar}>{orpChar}</span>
+                  <span style={{ ...styles.afterORP, opacity: sideOpacity }}>
+                    {afterORP}
+                  </span>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    ...styles.wordDisplay,
+                    transform: "translateY(-50%) translateX(-50%)",
+                  }}
+                  className="mono word-display"
+                >
+                  <span style={styles.placeholder}>Ready</span>
+                </div>
+              )}
+            </div>
 
-          <div style={styles.focalGuide}>
-            <div style={styles.focalLine} />
-            <div style={styles.focalMarker} />
-            <div style={styles.focalLine} />
+            <div style={styles.focalGuide}>
+              <div style={styles.focalLine} />
+              <div style={styles.focalMarker} />
+              <div style={styles.focalLine} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Bottom controls */}
       <div style={styles.bottomArea} className="bottom-area">
@@ -829,6 +929,7 @@ function App() {
           <kbd style={styles.kbd}>↑</kbd>
           <kbd style={styles.kbd}>↓</kbd> speed
           <kbd style={styles.kbd}>R</kbd> reset
+          <kbd style={styles.kbd}>B</kbd> book
         </div>
 
         {/* Book metadata display */}
@@ -913,6 +1014,10 @@ function App() {
                 <div style={styles.shortcutRow}>
                   <kbd style={styles.kbdLarge}>R</kbd>
                   <span>Reset to beginning</span>
+                </div>
+                <div style={styles.shortcutRow}>
+                  <kbd style={styles.kbdLarge}>B</kbd>
+                  <span>Toggle book view</span>
                 </div>
                 <div style={styles.shortcutRow}>
                   <kbd style={styles.kbdLarge}>Esc</kbd>
@@ -1069,26 +1174,6 @@ function App() {
             </div>
             <div style={{ padding: "20px" }}>
               <div style={styles.settingRow}>
-                <label style={styles.settingLabel}>Words per display</label>
-                <div style={styles.settingControl}>
-                  <button
-                    onClick={() => setWordAmount(Math.max(1, wordAmount - 1))}
-                    style={styles.settingBtn}
-                    disabled={wordAmount <= 1}
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span style={styles.settingValue}>{wordAmount}</span>
-                  <button
-                    onClick={() => setWordAmount(Math.min(3, wordAmount + 1))}
-                    style={styles.settingBtn}
-                    disabled={wordAmount >= 3}
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-              </div>
-              <div style={styles.settingRow}>
                 <label style={styles.settingLabel}>Side opacity</label>
                 <div style={styles.settingControl}>
                   <input
@@ -1139,10 +1224,11 @@ function App() {
 
 const styles = {
   container: {
-    minHeight: "100vh",
+    height: "100vh",
     display: "flex",
     flexDirection: "column",
     backgroundColor: "#0a0a0a",
+    overflow: "hidden",
   },
 
   // Top bar
@@ -1621,6 +1707,97 @@ const styles = {
     color: "#555",
     margin: 0,
     marginTop: "2px",
+  },
+
+  // Book view
+  bvOuter: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    minHeight: 0,
+  },
+  bvTopHalf: {
+    flex: 1,
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    maskImage: "linear-gradient(to bottom, transparent 0%, #000 50%)",
+    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 50%)",
+  },
+  bvTopText: {
+    fontSize: "1rem",
+    lineHeight: "2",
+    textAlign: "center",
+    fontFamily: "'Inter', sans-serif",
+    color: "#444",
+    padding: "0 32px",
+    maxWidth: "600px",
+  },
+  bvCenter: {
+    flexShrink: 0,
+    display: "flex",
+    justifyContent: "center",
+  },
+  bvDisplayArea: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    width: "100%",
+    maxWidth: "600px",
+  },
+  bvFocalGuide: {
+    display: "flex",
+    alignItems: "center",
+    width: "100%",
+    justifyContent: "center",
+  },
+  bvFocalLine: {
+    flex: 1,
+    height: "1px",
+    backgroundColor: "#1a1a1a",
+    maxWidth: "120px",
+  },
+  bvFocalMarker: {
+    width: "1px",
+    height: "24px",
+    backgroundColor: "#1a1a1a",
+  },
+  bvWordContainer: {
+    width: "100%",
+    height: "80px",
+    position: "relative",
+    overflow: "visible",
+  },
+  bvWordDisplay: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    fontSize: "2.5rem",
+    fontWeight: "500",
+    whiteSpace: "nowrap",
+    display: "flex",
+    alignItems: "center",
+  },
+  bvBottomHalf: {
+    flex: 1,
+    overflow: "hidden",
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    maskImage: "linear-gradient(to top, transparent 0%, #000 50%)",
+    WebkitMaskImage: "linear-gradient(to top, transparent 0%, #000 50%)",
+  },
+  bvBottomText: {
+    fontSize: "1rem",
+    lineHeight: "2",
+    textAlign: "center",
+    fontFamily: "'Inter', sans-serif",
+    color: "#444",
+    padding: "0 32px",
+    maxWidth: "600px",
   },
 
   // iOS install banner

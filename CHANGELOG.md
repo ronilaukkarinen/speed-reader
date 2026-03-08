@@ -8,6 +8,7 @@
 * Fix position restore on page refresh
 * Use justified text with automatic hyphens in book view
 * Preserve paragraph breaks from epub files in book view
+* Fix R keyboard shortcut resetting position on browser refresh
 
 ### 2026-02-02: 1.0.5
 

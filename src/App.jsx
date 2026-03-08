@@ -435,7 +435,7 @@ function App() {
   const initialParsed = useState(() => parseText(savedSettings?.text || DEFAULT_TEXT))[0];
   const [words, setWords] = useState(() => initialParsed.words);
   const [paragraphBreaks, setParagraphBreaks] = useState(() => initialParsed.breaks);
-  const [currentIndex, setCurrentIndex] = useState(() => {
+  const [_currentIndex, _setCurrentIndex] = useState(() => {
     const wordCount = initialParsed.words.length;
     const clamp = (v) => Math.min(Math.max(0, v), Math.max(0, wordCount - 1));
 
@@ -449,7 +449,7 @@ function App() {
       }
     }
 
-    // Read from dedicated lightweight key (survives even when full save fails)
+    // Read from dedicated lightweight key
     try {
       const stored = localStorage.getItem("rsvp-current-index");
       if (stored != null) {
@@ -466,6 +466,16 @@ function App() {
 
     return clamp(getPositionForText(savedSettings?.text || DEFAULT_TEXT, savedSettings?.positions || {}));
   });
+
+  // Wrap setCurrentIndex to save synchronously on every call
+  const currentIndex = _currentIndex;
+  const setCurrentIndex = useCallback((valueOrFn) => {
+    _setCurrentIndex((prev) => {
+      const next = typeof valueOrFn === "function" ? valueOrFn(prev) : valueOrFn;
+      try { localStorage.setItem("rsvp-current-index", String(next)); } catch {}
+      return next;
+    });
+  }, []);
   const [isPlaying, setIsPlaying] = useState(false);
   const [wpm, setWpm] = useState(() => savedSettings?.wpm || 300);
   const [showInfo, setShowInfo] = useState(false);
@@ -498,6 +508,7 @@ function App() {
   const timeoutRef = useRef(null);
   const prevTextRef = useRef(text);
   const fileInputRef = useRef(null);
+
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -559,12 +570,7 @@ function App() {
     }
   }, [text]);
 
-  // Save position separately (lightweight, always succeeds)
-  useEffect(() => {
-    try {
-      localStorage.setItem("rsvp-current-index", String(currentIndex));
-    } catch {}
-  }, [currentIndex]);
+
 
   // Save settings including position for current text
   useEffect(() => {
@@ -655,6 +661,7 @@ function App() {
           break;
         case "r":
         case "R":
+          if (e.ctrlKey || e.metaKey) break; // Allow browser refresh
           e.preventDefault();
           reset();
           break;

@@ -1,6 +1,6 @@
 # ⚡ Speed reader
 
-![Version](https://img.shields.io/badge/version-1.0.5-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.1.0-blue?style=for-the-badge)
 ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)

@@ -200,10 +200,11 @@ async function parseEpub(file) {
     const filePath = href.startsWith("/") ? href.slice(1) : opfDir + href;
     const content = await zip.file(filePath)?.async("text");
     if (content) {
-      // Strip HTML tags and get text
+      // Strip HTML tags, preserve paragraph breaks
       const textContent = content
         .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+        .replace(/<\/?(p|div|br|h[1-6]|blockquote|li|tr)[^>]*>/gi, "\n\n")
         .replace(/<[^>]+>/g, " ")
         .replace(/&nbsp;/g, " ")
         .replace(/&amp;/g, "&")
@@ -211,7 +212,8 @@ async function parseEpub(file) {
         .replace(/&gt;/g, ">")
         .replace(/&quot;/g, '"')
         .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n))
-        .replace(/\s+/g, " ")
+        .replace(/[^\S\n]+/g, " ")
+        .replace(/\n{3,}/g, "\n\n")
         .trim();
       if (textContent) {
         fullText += textContent + " ";
@@ -220,6 +222,23 @@ async function parseEpub(file) {
   }
 
   return { text: fullText.trim(), metadata };
+}
+
+// Parse text into words and paragraph break positions
+function parseText(text) {
+  const paragraphs = text.split(/\n\n+/);
+  const words = [];
+  const breaks = new Set();
+  for (const para of paragraphs) {
+    const paraWords = para.trim().split(/\s+/).filter((w) => w.length > 0);
+    if (paraWords.length > 0) {
+      if (words.length > 0) {
+        breaks.add(words.length);
+      }
+      words.push(...paraWords);
+    }
+  }
+  return { words, breaks };
 }
 
 // Spritz ORP algorithm - position where the eye naturally fixates
@@ -281,18 +300,31 @@ async function fetchMetadataFromOpenLibrary(title, author) {
   }
 }
 
-const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setCurrentIndex, setIsPlaying }) {
+function joinWordsWithBreaks(words, startIdx, endIdx, breaks) {
+  const parts = [];
+  for (let i = startIdx; i < endIdx; i++) {
+    if (i > startIdx && breaks.has(i)) {
+      parts.push("\n\n");
+    } else if (i > startIdx) {
+      parts.push(" ");
+    }
+    parts.push(words[i]);
+  }
+  return parts.join("");
+}
+
+const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setCurrentIndex, setIsPlaying, paragraphBreaks }) {
   const dragRef = useRef({ active: false, startY: 0, startIndex: 0 });
 
   const pastText = useMemo(() => {
     const start = Math.max(0, currentIndex - 200);
-    return words.slice(start, currentIndex).join(" ");
-  }, [words, currentIndex]);
+    return joinWordsWithBreaks(words, start, currentIndex, paragraphBreaks);
+  }, [words, currentIndex, paragraphBreaks]);
 
   const futureText = useMemo(() => {
     const end = Math.min(words.length, currentIndex + 200);
-    return words.slice(currentIndex + 1, end).join(" ");
-  }, [words, currentIndex]);
+    return joinWordsWithBreaks(words, currentIndex + 1, end, paragraphBreaks);
+  }, [words, currentIndex, paragraphBreaks]);
 
   const activeWord = words[currentIndex] || "";
   const orpIdx = getORPIndex(activeWord.length);
@@ -400,19 +432,11 @@ function App() {
   const positionsRef = useRef(savedSettings?.positions || {});
 
   const [text, setText] = useState(() => savedSettings?.text || DEFAULT_TEXT);
-  const [words, setWords] = useState(() => {
-    const t = savedSettings?.text || DEFAULT_TEXT;
-    return t
-      .trim()
-      .split(/\s+/)
-      .filter((w) => w.length > 0);
-  });
+  const initialParsed = useState(() => parseText(savedSettings?.text || DEFAULT_TEXT))[0];
+  const [words, setWords] = useState(() => initialParsed.words);
+  const [paragraphBreaks, setParagraphBreaks] = useState(() => initialParsed.breaks);
   const [currentIndex, setCurrentIndex] = useState(() => {
-    const t = savedSettings?.text || DEFAULT_TEXT;
-    const wordCount = t
-      .trim()
-      .split(/\s+/)
-      .filter((w) => w.length > 0).length;
+    const wordCount = initialParsed.words.length;
     const clamp = (v) => Math.min(Math.max(0, v), Math.max(0, wordCount - 1));
 
     // Check URL hash for shared links
@@ -522,11 +546,9 @@ function App() {
   // Handle text changes (not on initial mount)
   useEffect(() => {
     if (text !== prevTextRef.current) {
-      const parsed = text
-        .trim()
-        .split(/\s+/)
-        .filter((w) => w.length > 0);
+      const { words: parsed, breaks } = parseText(text);
       setWords(parsed);
+      setParagraphBreaks(breaks);
       // Text changed, load position for new text
       const savedPos = getPositionForText(text, positionsRef.current);
       setCurrentIndex(
@@ -872,6 +894,7 @@ function App() {
           sideOpacity={sideOpacity}
           setCurrentIndex={setCurrentIndex}
           setIsPlaying={setIsPlaying}
+          paragraphBreaks={paragraphBreaks}
         />
       ) : (
         <div style={styles.mainArea} className="main-area">
@@ -1796,6 +1819,7 @@ const styles = {
     lineHeight: "2",
     textAlign: "justify",
     hyphens: "auto",
+    whiteSpace: "pre-wrap",
     fontFamily: "'Inter', sans-serif",
     color: "#444",
     padding: "0 32px",
@@ -1860,6 +1884,7 @@ const styles = {
     lineHeight: "2",
     textAlign: "justify",
     hyphens: "auto",
+    whiteSpace: "pre-wrap",
     fontFamily: "'Inter', sans-serif",
     color: "#444",
     padding: "0 32px",

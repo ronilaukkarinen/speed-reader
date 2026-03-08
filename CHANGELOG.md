@@ -7,6 +7,7 @@
 * Add drag to scrub through words in book view
 * Fix position restore on page refresh
 * Use justified text with automatic hyphens in book view
+* Preserve paragraph breaks from epub files in book view
 
 ### 2026-02-02: 1.0.5
 

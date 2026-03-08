@@ -4,6 +4,7 @@
 * Remove words per display setting, default to single word
 * Save and restore reading position on refresh via localStorage
 * Update URL hash with current position in real time
+* Add drag to scrub through words in book view
 
 ### 2026-02-02: 1.0.5
 

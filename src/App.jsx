@@ -281,7 +281,9 @@ async function fetchMetadataFromOpenLibrary(title, author) {
   }
 }
 
-const BookView = memo(function BookView({ words, currentIndex, sideOpacity }) {
+const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setCurrentIndex, setIsPlaying }) {
+  const dragRef = useRef({ active: false, startY: 0, startIndex: 0 });
+
   const pastText = useMemo(() => {
     const start = Math.max(0, currentIndex - 200);
     return words.slice(start, currentIndex).join(" ");
@@ -298,8 +300,48 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity }) {
   const orp = activeWord[orpIdx] || "";
   const after = activeWord.slice(orpIdx + 1);
 
+  const onDragStart = useCallback((clientY) => {
+    setIsPlaying(false);
+    dragRef.current = { active: true, startY: clientY, startIndex: currentIndex };
+  }, [currentIndex, setIsPlaying]);
+
+  const onDragMove = useCallback((clientY) => {
+    if (!dragRef.current.active) return;
+    const dy = dragRef.current.startY - clientY;
+    // Every 20px of drag = 1 word
+    const wordDelta = Math.round(dy / 20);
+    const newIndex = Math.max(0, Math.min(words.length - 1, dragRef.current.startIndex + wordDelta));
+    setCurrentIndex(newIndex);
+  }, [words.length, setCurrentIndex]);
+
+  const onDragEnd = useCallback(() => {
+    dragRef.current.active = false;
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => onDragMove(e.clientY);
+    const handleMouseUp = () => onDragEnd();
+    const handleTouchMove = (e) => onDragMove(e.touches[0].clientY);
+    const handleTouchEnd = () => onDragEnd();
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", handleTouchEnd);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [onDragMove, onDragEnd]);
+
   return (
-    <div style={styles.bvOuter}>
+    <div
+      style={styles.bvOuter}
+      onMouseDown={(e) => onDragStart(e.clientY)}
+      onTouchStart={(e) => onDragStart(e.touches[0].clientY)}
+    >
       {/* Past text above */}
       <div style={styles.bvTopHalf}>
         <div style={styles.bvTopText}>
@@ -810,6 +852,8 @@ function App() {
           words={words}
           currentIndex={currentIndex}
           sideOpacity={sideOpacity}
+          setCurrentIndex={setCurrentIndex}
+          setIsPlaying={setIsPlaying}
         />
       ) : (
         <div style={styles.mainArea} className="main-area">
@@ -1716,6 +1760,8 @@ const styles = {
     flexDirection: "column",
     overflow: "hidden",
     minHeight: 0,
+    cursor: "grab",
+    userSelect: "none",
   },
   bvTopHalf: {
     flex: 1,

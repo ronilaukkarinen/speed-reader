@@ -1,7 +1,6 @@
 ## Commits and code style
 
 - 2 space indents
-- Always commit build and asset files
 - One logical change per commit
 - Keep commit messages concise (one line), use sentence case
 - Update CHANGELOG.md after each change

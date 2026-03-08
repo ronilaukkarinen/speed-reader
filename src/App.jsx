@@ -408,28 +408,30 @@ function App() {
       .filter((w) => w.length > 0);
   });
   const [currentIndex, setCurrentIndex] = useState(() => {
-    // Check URL hash for shared position
-    const hash = window.location.hash;
-    if (hash) {
-      const params = new URLSearchParams(hash.slice(1));
-      const urlPos = parseInt(params.get("pos"), 10);
-      if (!isNaN(urlPos) && urlPos >= 0) {
-        const t = savedSettings?.text || DEFAULT_TEXT;
-        const wordCount = t
-          .trim()
-          .split(/\s+/)
-          .filter((w) => w.length > 0).length;
-        return Math.min(Math.max(0, urlPos), Math.max(0, wordCount - 1));
-      }
-    }
     const t = savedSettings?.text || DEFAULT_TEXT;
-    // Try direct currentIndex first, then position hash
-    const pos = savedSettings?.currentIndex ?? getPositionForText(t, savedSettings?.positions || {});
     const wordCount = t
       .trim()
       .split(/\s+/)
       .filter((w) => w.length > 0).length;
-    return Math.min(Math.max(0, pos), Math.max(0, wordCount - 1));
+    const clamp = (v) => Math.min(Math.max(0, v), Math.max(0, wordCount - 1));
+
+    // Restore from localStorage first (most reliable)
+    const savedIdx = savedSettings?.currentIndex;
+    const posIdx = getPositionForText(t, savedSettings?.positions || {});
+    const storedPos = savedIdx != null ? savedIdx : posIdx;
+
+    // Check URL hash - only use if explicitly different from stored position
+    // (indicates a shared link, not just a refresh)
+    const hash = window.location.hash;
+    if (hash) {
+      const params = new URLSearchParams(hash.slice(1));
+      const urlPos = parseInt(params.get("pos"), 10);
+      if (!isNaN(urlPos) && urlPos >= 0 && urlPos !== storedPos) {
+        return clamp(urlPos);
+      }
+    }
+
+    return clamp(storedPos);
   });
   const [isPlaying, setIsPlaying] = useState(false);
   const [wpm, setWpm] = useState(() => savedSettings?.wpm || 300);
@@ -1776,7 +1778,8 @@ const styles = {
   bvTopText: {
     fontSize: "1rem",
     lineHeight: "2",
-    textAlign: "center",
+    textAlign: "justify",
+    hyphens: "auto",
     fontFamily: "'Inter', sans-serif",
     color: "#444",
     padding: "0 32px",
@@ -1839,7 +1842,8 @@ const styles = {
   bvBottomText: {
     fontSize: "1rem",
     lineHeight: "2",
-    textAlign: "center",
+    textAlign: "justify",
+    hyphens: "auto",
     fontFamily: "'Inter', sans-serif",
     color: "#444",
     padding: "0 32px",

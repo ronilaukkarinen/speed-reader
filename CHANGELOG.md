@@ -5,6 +5,8 @@
 * Save and restore reading position on refresh via localStorage
 * Update URL hash with current position in real time
 * Add drag to scrub through words in book view
+* Fix position restore on page refresh
+* Use justified text with automatic hyphens in book view
 
 ### 2026-02-02: 1.0.5
 

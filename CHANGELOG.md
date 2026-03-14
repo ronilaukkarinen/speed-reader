@@ -1,3 +1,10 @@
+### 2026-03-14: 1.1.1
+
+* Move book view background active word to upper area instead of center
+* Increase display area opacity and add backdrop blur in book view
+* Remove max-width constraint from book view display area
+* Add soft feathered edges to book view ORP overlay
+
 ### 2026-03-08: 1.1.0
 
 * Add book view mode with text flowing around a fixed center word

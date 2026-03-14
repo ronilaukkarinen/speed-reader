@@ -354,7 +354,7 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
       const containerH = bgContainerRef.current.clientHeight;
       const markerTop = markerRef.current.offsetTop - bgTextRef.current.offsetTop;
       const markerH = markerRef.current.offsetHeight;
-      const offset = containerH / 2 - markerTop - markerH / 2;
+      const offset = containerH * 0.3 - markerTop - markerH / 2;
       bgTextRef.current.style.transform = `translateY(${offset}px)`;
     }
   }, [currentIndex]);

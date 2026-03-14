@@ -4,6 +4,7 @@
 * Increase display area opacity and add backdrop blur in book view
 * Remove max-width constraint from book view display area
 * Add soft feathered edges to book view ORP overlay
+* Fix version extraction in release workflow
 
 ### 2026-03-08: 1.1.0
 

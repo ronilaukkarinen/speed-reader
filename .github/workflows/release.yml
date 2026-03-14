@@ -19,7 +19,7 @@ jobs:
       - name: Get version from CHANGELOG
         id: version
         run: |
-          VERSION=$(grep -m1 '^### ' CHANGELOG.md | sed 's/### \([0-9.]*\).*/\1/')
+          VERSION=$(grep -m1 '^### ' CHANGELOG.md | sed 's/.*: //')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Found version: $VERSION"
 

@@ -118,10 +118,11 @@ function loadSettings() {
 
 function saveSettings(settings) {
   try {
-    // Store text in IndexedDB, not localStorage
-    const { text, ...rest } = settings;
+    // Store text and position in IndexedDB, small settings in localStorage
+    const { text, currentIndex, ...rest } = settings;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
     idbSet("text", text).catch(() => {});
+    idbSet("position", currentIndex).catch(() => {});
   } catch (e) {
     console.error("Failed to save settings:", e);
   }
@@ -493,6 +494,9 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
   );
 });
 
+// Capture URL hash before any effects can modify it
+const initialUrlHash = window.location.hash;
+
 function App() {
   // Load settings only once on mount
   const [savedSettings] = useState(() => loadSettings());
@@ -534,31 +538,26 @@ function App() {
     return clamp(getPositionForText(savedSettings?.text || DEFAULT_TEXT, savedSettings?.positions || {}));
   });
 
-  // Load text from IndexedDB on mount (async, overrides default text)
+  // Load text and position from IndexedDB on mount
   const [idbLoaded, setIdbLoaded] = useState(false);
   useEffect(() => {
-    idbGet("text").then((savedText) => {
+    Promise.all([idbGet("text"), idbGet("position")]).then(([savedText, savedPos]) => {
       if (savedText && savedText !== DEFAULT_TEXT) {
         setText(savedText);
         const parsed = parseText(savedText);
         setWords(parsed.words);
         setParagraphBreaks(parsed.breaks);
-        // Restore position for this text
-        const hash = window.location.hash;
+        // Restore position: URL hash (captured before effects) > IndexedDB > 0
         let pos = 0;
-        if (hash) {
-          const params = new URLSearchParams(hash.slice(1));
+        if (initialUrlHash) {
+          const params = new URLSearchParams(initialUrlHash.slice(1));
           const urlPos = parseInt(params.get("pos"), 10);
           if (!isNaN(urlPos) && urlPos >= 0) pos = urlPos;
-        } else {
-          try {
-            const stored = localStorage.getItem("rsvp-current-index");
-            if (stored != null) pos = parseInt(stored, 10) || 0;
-          } catch {}
+        } else if (typeof savedPos === "number") {
+          pos = savedPos;
         }
         const clamped = Math.min(Math.max(0, pos), Math.max(0, parsed.words.length - 1));
         _setCurrentIndex(clamped);
-        try { localStorage.setItem("rsvp-current-index", String(clamped)); } catch {}
       }
       setIdbLoaded(true);
     }).catch(() => setIdbLoaded(true));
@@ -669,35 +668,36 @@ function App() {
 
 
 
-  // Save settings including position for current text
   // Save position for current text (lightweight, every word change)
   useEffect(() => {
+    if (!idbLoaded) return;
     positionsRef.current = savePositionForText(
       text,
       currentIndex,
       positionsRef.current,
     );
     try { localStorage.setItem("rsvp-current-index", String(currentIndex)); } catch {}
-  }, [text, currentIndex]);
+  }, [text, currentIndex, idbLoaded]);
 
   // Save full settings when settings/text change or playback stops
   useEffect(() => {
-    if (!isPlaying) {
-      saveSettings({
-        wpm,
-        text,
-        currentIndex,
-        positions: positionsRef.current,
-        sideOpacity,
-        bookView,
-        bookMetadata,
-        fetchMetadataOnline,
-      });
-    }
-  }, [wpm, text, isPlaying, sideOpacity, bookView, bookMetadata, fetchMetadataOnline]);
+    if (!idbLoaded || isPlaying) return;
+    saveSettings({
+      wpm,
+      text,
+      currentIndex,
+      positions: positionsRef.current,
+      sideOpacity,
+      bookView,
+      bookMetadata,
+      fetchMetadataOnline,
+    });
+  }, [wpm, text, isPlaying, sideOpacity, bookView, bookMetadata, fetchMetadataOnline, idbLoaded]);
 
   // Save full settings when page unloads or goes to background (iOS)
+  // Save full settings when page unloads or goes to background (iOS)
   useEffect(() => {
+    if (!idbLoaded) return;
     const save = () => {
       saveSettings({
         wpm,
@@ -719,14 +719,14 @@ function App() {
       window.removeEventListener("beforeunload", save);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [wpm, text, currentIndex, sideOpacity, bookView, bookMetadata, fetchMetadataOnline]);
+  }, [wpm, text, currentIndex, sideOpacity, bookView, bookMetadata, fetchMetadataOnline, idbLoaded]);
 
   // Update URL hash with current position in real time
   useEffect(() => {
-    if (words.length > 0) {
+    if (idbLoaded && words.length > 0) {
       window.history.replaceState(null, "", `${window.location.pathname}#pos=${currentIndex}`);
     }
-  }, [currentIndex, words.length]);
+  }, [currentIndex, words.length, idbLoaded]);
 
   const getBaseDelay = useCallback(() => {
     return (60 / wpm) * 1000;

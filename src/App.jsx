@@ -38,6 +38,39 @@ const DEFAULT_TEXT = `Welcome to the RSVP Speed Reader! This tool uses Rapid Ser
 const STORAGE_KEY = "rsvp-reader-settings";
 const IOS_BANNER_DISMISSED_KEY = "rsvp-ios-banner-dismissed";
 
+// IndexedDB helpers for large data (book text)
+const DB_NAME = "rsvp-reader";
+const DB_STORE = "data";
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSet(key, value) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readwrite");
+    tx.objectStore(DB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbGet(key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readonly");
+    const req = tx.objectStore(DB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
 // Detect iOS Safari (not in standalone mode)
 function isIOSSafari() {
   const ua = navigator.userAgent;
@@ -67,7 +100,16 @@ function hashText(text) {
 function loadSettings() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migrate: move text from localStorage to IndexedDB
+      if (parsed.text) {
+        idbSet("text", parsed.text).catch(() => {});
+        const { text, ...rest } = parsed;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+      }
+      return parsed;
+    }
   } catch (e) {
     console.error("Failed to load settings:", e);
   }
@@ -76,7 +118,10 @@ function loadSettings() {
 
 function saveSettings(settings) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    // Store text in IndexedDB, not localStorage
+    const { text, ...rest } = settings;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+    idbSet("text", text).catch(() => {});
   } catch (e) {
     console.error("Failed to save settings:", e);
   }
@@ -489,6 +534,36 @@ function App() {
     return clamp(getPositionForText(savedSettings?.text || DEFAULT_TEXT, savedSettings?.positions || {}));
   });
 
+  // Load text from IndexedDB on mount (async, overrides default text)
+  const [idbLoaded, setIdbLoaded] = useState(false);
+  useEffect(() => {
+    idbGet("text").then((savedText) => {
+      if (savedText && savedText !== DEFAULT_TEXT) {
+        setText(savedText);
+        const parsed = parseText(savedText);
+        setWords(parsed.words);
+        setParagraphBreaks(parsed.breaks);
+        // Restore position for this text
+        const hash = window.location.hash;
+        let pos = 0;
+        if (hash) {
+          const params = new URLSearchParams(hash.slice(1));
+          const urlPos = parseInt(params.get("pos"), 10);
+          if (!isNaN(urlPos) && urlPos >= 0) pos = urlPos;
+        } else {
+          try {
+            const stored = localStorage.getItem("rsvp-current-index");
+            if (stored != null) pos = parseInt(stored, 10) || 0;
+          } catch {}
+        }
+        const clamped = Math.min(Math.max(0, pos), Math.max(0, parsed.words.length - 1));
+        _setCurrentIndex(clamped);
+        try { localStorage.setItem("rsvp-current-index", String(clamped)); } catch {}
+      }
+      setIdbLoaded(true);
+    }).catch(() => setIdbLoaded(true));
+  }, []);
+
   // Wrap setCurrentIndex to save synchronously on every call
   const currentIndex = _currentIndex;
   const setCurrentIndex = useCallback((valueOrFn) => {
@@ -595,22 +670,55 @@ function App() {
 
 
   // Save settings including position for current text
+  // Save position for current text (lightweight, every word change)
   useEffect(() => {
     positionsRef.current = savePositionForText(
       text,
       currentIndex,
       positionsRef.current,
     );
-    saveSettings({
-      wpm,
-      text,
-      currentIndex,
-      positions: positionsRef.current,
-      sideOpacity,
-      bookView,
-      bookMetadata,
-      fetchMetadataOnline,
-    });
+    try { localStorage.setItem("rsvp-current-index", String(currentIndex)); } catch {}
+  }, [text, currentIndex]);
+
+  // Save full settings when settings/text change or playback stops
+  useEffect(() => {
+    if (!isPlaying) {
+      saveSettings({
+        wpm,
+        text,
+        currentIndex,
+        positions: positionsRef.current,
+        sideOpacity,
+        bookView,
+        bookMetadata,
+        fetchMetadataOnline,
+      });
+    }
+  }, [wpm, text, isPlaying, sideOpacity, bookView, bookMetadata, fetchMetadataOnline]);
+
+  // Save full settings when page unloads or goes to background (iOS)
+  useEffect(() => {
+    const save = () => {
+      saveSettings({
+        wpm,
+        text,
+        currentIndex,
+        positions: positionsRef.current,
+        sideOpacity,
+        bookView,
+        bookMetadata,
+        fetchMetadataOnline,
+      });
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") save();
+    };
+    window.addEventListener("beforeunload", save);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", save);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [wpm, text, currentIndex, sideOpacity, bookView, bookMetadata, fetchMetadataOnline]);
 
   // Update URL hash with current position in real time

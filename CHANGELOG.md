@@ -1,3 +1,9 @@
+### 2026-03-28: 1.2.0
+
+* Store book text in IndexedDB to fix localStorage quota exceeded on iOS
+* Save full settings only on pause and page unload instead of every word
+* Add visibilitychange handler for reliable saves on iOS background
+
 ### 2026-03-14: 1.1.1
 
 * Move book view background active word to upper area instead of center

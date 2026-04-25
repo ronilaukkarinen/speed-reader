@@ -2,6 +2,7 @@
 
 * Jump to word position by changing URL hash to `#pos=N`
 * Jump to sentence by changing URL hash to `#sentence=N`
+* Add eye toggle to show or hide focus word overlay in book view
 
 ### 2026-03-28: 1.2.0
 

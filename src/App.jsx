@@ -16,6 +16,8 @@ import {
   Minimize,
   Share,
   BookOpen,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import JSZip from "jszip";
 
@@ -389,7 +391,7 @@ function joinWordsWithBreaks(words, startIdx, endIdx, breaks) {
   return parts.join("");
 }
 
-const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setCurrentIndex, setIsPlaying, paragraphBreaks }) {
+const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setCurrentIndex, setIsPlaying, paragraphBreaks, overlayHidden }) {
   const dragRef = useRef({ active: false, startY: 0, startIndex: 0 });
   const bgContainerRef = useRef(null);
   const bgTextRef = useRef(null);
@@ -489,36 +491,38 @@ const BookView = memo(function BookView({ words, currentIndex, sideOpacity, setC
 
       {/* Foreground: ORP center display */}
       <div className="flex-spacer" />
-      <div className="bv-center">
-        <div className="bv-display-area">
-          <div className="bv-focal-guide">
-            <div className="bv-focal-line" />
-            <div className="bv-focal-marker" />
-            <div className="bv-focal-line" />
-          </div>
+      {!overlayHidden && (
+        <div className="bv-center">
+          <div className="bv-display-area">
+            <div className="bv-focal-guide">
+              <div className="bv-focal-line" />
+              <div className="bv-focal-marker" />
+              <div className="bv-focal-line" />
+            </div>
 
-          <div className="bv-word-container">
-            <div
-              style={{ transform: `translateY(-50%) translateX(calc(-${orpIdx}ch - 0.5ch))` }}
-              className="bv-word-display mono"
-            >
-              <span className="before-orp" style={{ opacity: sideOpacity }}>
-                {before}
-              </span>
-              <span className="orp-char">{orp}</span>
-              <span className="after-orp" style={{ opacity: sideOpacity }}>
-                {after}
-              </span>
+            <div className="bv-word-container">
+              <div
+                style={{ transform: `translateY(-50%) translateX(calc(-${orpIdx}ch - 0.5ch))` }}
+                className="bv-word-display mono"
+              >
+                <span className="before-orp" style={{ opacity: sideOpacity }}>
+                  {before}
+                </span>
+                <span className="orp-char">{orp}</span>
+                <span className="after-orp" style={{ opacity: sideOpacity }}>
+                  {after}
+                </span>
+              </div>
+            </div>
+
+            <div className="bv-focal-guide">
+              <div className="bv-focal-line" />
+              <div className="bv-focal-marker" />
+              <div className="bv-focal-line" />
             </div>
           </div>
-
-          <div className="bv-focal-guide">
-            <div className="bv-focal-line" />
-            <div className="bv-focal-marker" />
-            <div className="bv-focal-line" />
-          </div>
         </div>
-      </div>
+      )}
       <div className="flex-spacer" />
     </div>
   );
@@ -611,6 +615,9 @@ function App() {
   );
   const [bookView, setBookView] = useState(
     () => savedSettings?.bookView ?? false,
+  );
+  const [bookOverlayHidden, setBookOverlayHidden] = useState(
+    () => savedSettings?.bookOverlayHidden ?? false,
   );
   const [fetchMetadataOnline, setFetchMetadataOnline] = useState(
     () => savedSettings?.fetchMetadataOnline ?? false,
@@ -713,10 +720,11 @@ function App() {
       positions: positionsRef.current,
       sideOpacity,
       bookView,
+      bookOverlayHidden,
       bookMetadata,
       fetchMetadataOnline,
     });
-  }, [wpm, text, isPlaying, sideOpacity, bookView, bookMetadata, fetchMetadataOnline, idbLoaded]);
+  }, [wpm, text, isPlaying, sideOpacity, bookView, bookOverlayHidden, bookMetadata, fetchMetadataOnline, idbLoaded]);
 
   // Save full settings when page unloads or goes to background (iOS)
   // Save full settings when page unloads or goes to background (iOS)
@@ -730,6 +738,7 @@ function App() {
         positions: positionsRef.current,
         sideOpacity,
         bookView,
+        bookOverlayHidden,
         bookMetadata,
         fetchMetadataOnline,
       });
@@ -743,7 +752,7 @@ function App() {
       window.removeEventListener("beforeunload", save);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [wpm, text, currentIndex, sideOpacity, bookView, bookMetadata, fetchMetadataOnline, idbLoaded]);
+  }, [wpm, text, currentIndex, sideOpacity, bookView, bookOverlayHidden, bookMetadata, fetchMetadataOnline, idbLoaded]);
 
   // Update URL hash with current position in real time
   useEffect(() => {
@@ -1008,6 +1017,15 @@ function App() {
           >
             <BookOpen size={18} />
           </button>
+          {bookView && (
+            <button
+              onClick={() => setBookOverlayHidden((v) => !v)}
+              className={`icon-btn${bookOverlayHidden ? " active" : ""}`}
+              title={bookOverlayHidden ? "Show focus word" : "Hide focus word"}
+            >
+              {bookOverlayHidden ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          )}
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="icon-btn"
@@ -1057,6 +1075,7 @@ function App() {
           setCurrentIndex={setCurrentIndex}
           setIsPlaying={setIsPlaying}
           paragraphBreaks={paragraphBreaks}
+          overlayHidden={bookOverlayHidden}
         />
       ) : (
         <div className="main-area">

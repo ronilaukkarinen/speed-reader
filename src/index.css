@@ -641,7 +641,6 @@ button:active {
 
 .bv-bg-active-word {
   color: #ff6b6b;
-  font-weight: 700;
   filter: drop-shadow(0 0 12px rgba(220, 38, 38, 0.5));
 }
 

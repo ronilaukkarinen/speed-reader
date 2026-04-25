@@ -287,6 +287,36 @@ function parseText(text) {
   return { words, breaks };
 }
 
+// Word indices where sentences start (0 is always first sentence)
+function getSentenceStarts(words) {
+  const starts = [0];
+  for (let i = 0; i < words.length - 1; i++) {
+    if (/[.!?]["')\]]?$/.test(words[i])) starts.push(i + 1);
+  }
+  return starts;
+}
+
+// Resolve URL hash params (pos=N or sentence=N) to a word index
+function resolveHashIndex(hashStr, words) {
+  if (!hashStr) return null;
+  const params = new URLSearchParams(hashStr.replace(/^#/, ""));
+  const sentenceParam = params.get("sentence");
+  if (sentenceParam != null) {
+    const n = parseInt(sentenceParam, 10);
+    if (!isNaN(n) && n >= 1) {
+      const starts = getSentenceStarts(words);
+      const idx = starts[Math.min(n - 1, starts.length - 1)];
+      return idx ?? 0;
+    }
+  }
+  const posParam = params.get("pos");
+  if (posParam != null) {
+    const n = parseInt(posParam, 10);
+    if (!isNaN(n) && n >= 0) return n;
+  }
+  return null;
+}
+
 // Spritz ORP algorithm - position where the eye naturally fixates
 // Based on Optimal Viewing Position research (20-35% from left)
 function getORPIndex(wordLength) {
@@ -548,14 +578,8 @@ function App() {
         setWords(parsed.words);
         setParagraphBreaks(parsed.breaks);
         // Restore position: URL hash (captured before effects) > IndexedDB > 0
-        let pos = 0;
-        if (initialUrlHash) {
-          const params = new URLSearchParams(initialUrlHash.slice(1));
-          const urlPos = parseInt(params.get("pos"), 10);
-          if (!isNaN(urlPos) && urlPos >= 0) pos = urlPos;
-        } else if (typeof savedPos === "number") {
-          pos = savedPos;
-        }
+        let pos = resolveHashIndex(initialUrlHash, parsed.words);
+        if (pos == null) pos = typeof savedPos === "number" ? savedPos : 0;
         const clamped = Math.min(Math.max(0, pos), Math.max(0, parsed.words.length - 1));
         _setCurrentIndex(clamped);
       }
@@ -727,6 +751,22 @@ function App() {
       window.history.replaceState(null, "", `${window.location.pathname}#pos=${currentIndex}`);
     }
   }, [currentIndex, words.length, idbLoaded]);
+
+  // React to manual URL hash changes (jump by typing #pos=N or #sentence=N)
+  useEffect(() => {
+    if (!idbLoaded || words.length === 0) return;
+    const onHashChange = () => {
+      const target = resolveHashIndex(window.location.hash, words);
+      if (target == null) return;
+      const clamped = Math.min(Math.max(0, target), words.length - 1);
+      if (clamped !== currentIndex) {
+        setIsPlaying(false);
+        _setCurrentIndex(clamped);
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [idbLoaded, words, currentIndex]);
 
   const getBaseDelay = useCallback(() => {
     return (60 / wpm) * 1000;

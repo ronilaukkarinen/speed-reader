@@ -1,3 +1,8 @@
+### 2026-04-25: 1.3.0
+
+* Jump to word position by changing URL hash to `#pos=N`
+* Jump to sentence by changing URL hash to `#sentence=N`
+
 ### 2026-03-28: 1.2.0
 
 * Store book text in IndexedDB to fix localStorage quota exceeded on iOS

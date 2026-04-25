@@ -297,7 +297,10 @@ button:active {
   justify-content: center;
 }
 
-.play-btn {
+.play-btn,
+.play-btn:focus,
+.play-btn:focus-visible,
+.play-btn:active {
   background: #ff6b6b;
   border: none;
   border-radius: 50%;
